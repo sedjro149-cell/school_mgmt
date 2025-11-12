@@ -1,0 +1,495 @@
+{
+  "start": "2025-10-26T22:22:45.839160",
+  "levels": [
+    {
+      "level_id": 11,
+      "name": "1èreA",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 3,
+        "est_vars_after_pruning": 576
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 11,
+      "name": "1èreA",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 3,
+        "est_vars_after_pruning": 576
+      },
+      "attempt": 2
+    },
+    {
+      "level_id": 11,
+      "name": "1èreA",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 3,
+        "est_vars_after_pruning": 576
+      },
+      "attempt": 3
+    },
+    {
+      "level_id": 11,
+      "name": "1èreA",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 3,
+        "est_vars_after_pruning": 576
+      },
+      "attempt": 4
+    },
+    {
+      "level_id": 1,
+      "name": "6e",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 416
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 2,
+      "name": "5e",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 448
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 5,
+      "name": "3eMC",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 440
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 6,
+      "name": "3eML",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 442
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 3,
+      "name": "4eMC",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 428
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 4,
+      "name": "4eML",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 430
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 9,
+      "name": "2ndC",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 446
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 13,
+      "name": "1èreC",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 482
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 10,
+      "name": "2ndD",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 472
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 14,
+      "name": "1èreD",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 3,
+        "est_vars_after_pruning": 457
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 14,
+      "name": "1èreD",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 3,
+        "est_vars_after_pruning": 457
+      },
+      "attempt": 2
+    },
+    {
+      "level_id": 14,
+      "name": "1èreD",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 3,
+        "est_vars_after_pruning": 457
+      },
+      "attempt": 3
+    },
+    {
+      "level_id": 14,
+      "name": "1èreD",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 3,
+        "est_vars_after_pruning": 457
+      },
+      "attempt": 4
+    },
+    {
+      "level_id": 13,
+      "name": "1èreC",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 512
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 8,
+      "name": "2ndB",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 512
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 3,
+      "name": "4eMC",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 448
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 1,
+      "name": "6e",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 385
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 17,
+      "name": "TleC",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 494
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 11,
+      "name": "1èreA",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 3,
+        "est_vars_after_pruning": 565
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 11,
+      "name": "1èreA",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 3,
+        "est_vars_after_pruning": 565
+      },
+      "attempt": 2
+    },
+    {
+      "level_id": 11,
+      "name": "1èreA",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 3,
+        "est_vars_after_pruning": 565
+      },
+      "attempt": 3
+    },
+    {
+      "level_id": 11,
+      "name": "1èreA",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 3,
+        "est_vars_after_pruning": 565
+      },
+      "attempt": 4
+    },
+    {
+      "level_id": 1,
+      "name": "6e",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 416
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 2,
+      "name": "5e",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 448
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 3,
+      "name": "4eMC",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 438
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 4,
+      "name": "4eML",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 444
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 5,
+      "name": "3eMC",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 426
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 6,
+      "name": "3eML",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 432
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 7,
+      "name": "2ndA",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 490
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 8,
+      "name": "2ndB",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 461
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 9,
+      "name": "2ndC",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 434
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 10,
+      "name": "2ndD",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 457
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 11,
+      "name": "1èreA",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 3,
+        "est_vars_after_pruning": 522
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 11,
+      "name": "1èreA",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 3,
+        "est_vars_after_pruning": 522
+      },
+      "attempt": 2
+    },
+    {
+      "level_id": 11,
+      "name": "1èreA",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 3,
+        "est_vars_after_pruning": 522
+      },
+      "attempt": 3
+    },
+    {
+      "level_id": 11,
+      "name": "1èreA",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 3,
+        "est_vars_after_pruning": 522
+      },
+      "attempt": 4
+    }
+  ],
+  "merged": {
+    "conflicts": [],
+    "resolved": [],
+    "shortfalls": []
+  },
+  "persisted": {
+    "created": 280
+  },
+  "end": "2025-10-26T22:22:57.670572",
+  "global_entries_count": 280
+}

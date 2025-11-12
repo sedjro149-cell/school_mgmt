@@ -1,0 +1,1328 @@
+{
+  "start": "2025-10-25T21:41:51.168689",
+  "levels": [
+    {
+      "level_id": 11,
+      "name": "1èreA",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 3,
+        "est_vars_after_pruning": 576
+      }
+    },
+    {
+      "level_id": 8,
+      "name": "2ndB",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 512
+      }
+    },
+    {
+      "level_id": 12,
+      "name": "1èreB",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [
+          {
+            "class": "1èreB1 (1èreB)",
+            "class_id": 23,
+            "subject": "EPS",
+            "subject_id": 10
+          }
+        ],
+        "status": 4,
+        "est_vars_after_pruning": 480
+      }
+    },
+    {
+      "level_id": 15,
+      "name": "TleA",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 512
+      }
+    },
+    {
+      "level_id": 7,
+      "name": "2ndA",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 512
+      }
+    },
+    {
+      "level_id": 16,
+      "name": "TleB",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 512
+      }
+    },
+    {
+      "level_id": 18,
+      "name": "TleD",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 512
+      }
+    },
+    {
+      "level_id": 14,
+      "name": "1èreD",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 512
+      }
+    },
+    {
+      "level_id": 17,
+      "name": "TleC",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 512
+      }
+    },
+    {
+      "level_id": 13,
+      "name": "1èreC",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 512
+      }
+    },
+    {
+      "level_id": 10,
+      "name": "2ndD",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 512
+      }
+    },
+    {
+      "level_id": 9,
+      "name": "2ndC",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 480
+      }
+    },
+    {
+      "level_id": 5,
+      "name": "3eMC",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 448
+      }
+    },
+    {
+      "level_id": 6,
+      "name": "3eML",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 448
+      }
+    },
+    {
+      "level_id": 3,
+      "name": "4eMC",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 448
+      }
+    },
+    {
+      "level_id": 4,
+      "name": "4eML",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 448
+      }
+    },
+    {
+      "level_id": 2,
+      "name": "5e",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 448
+      }
+    },
+    {
+      "level_id": 1,
+      "name": "6e",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 416
+      }
+    }
+  ],
+  "merged": {
+    "conflicts": [],
+    "resolved": [
+      {
+        "conflict": {
+          "type": "teacher_conflict",
+          "slot": 0,
+          "teacher_id": "T059448",
+          "existing": {
+            "class_id": 24,
+            "subject_id": 7,
+            "teacher_id": "T059448",
+            "weekday": 1,
+            "starts_at": "07:00:00",
+            "ends_at": "10:00:00",
+            "slot_idx": 0
+          },
+          "new": {
+            "class_id": 29,
+            "subject_id": 7,
+            "teacher_id": "T059448",
+            "weekday": 1,
+            "starts_at": "07:00:00",
+            "ends_at": "10:00:00",
+            "slot_idx": 24
+          }
+        },
+        "moved_to": 24
+      },
+      {
+        "conflict": {
+          "type": "teacher_conflict",
+          "slot": 9,
+          "teacher_id": "T475556",
+          "existing": {
+            "class_id": 24,
+            "subject_id": 8,
+            "teacher_id": "T475556",
+            "weekday": 2,
+            "starts_at": "10:00:00",
+            "ends_at": "13:00:00",
+            "slot_idx": 9
+          },
+          "new": {
+            "class_id": 14,
+            "subject_id": 8,
+            "teacher_id": "T475556",
+            "weekday": 2,
+            "starts_at": "10:00:00",
+            "ends_at": "13:00:00",
+            "slot_idx": 12
+          }
+        },
+        "moved_to": 12
+      },
+      {
+        "conflict": {
+          "type": "teacher_conflict",
+          "slot": 0,
+          "teacher_id": "T989076",
+          "existing": {
+            "class_id": 13,
+            "subject_id": 7,
+            "teacher_id": "T989076",
+            "weekday": 1,
+            "starts_at": "07:00:00",
+            "ends_at": "10:00:00",
+            "slot_idx": 0
+          },
+          "new": {
+            "class_id": 32,
+            "subject_id": 7,
+            "teacher_id": "T989076",
+            "weekday": 1,
+            "starts_at": "07:00:00",
+            "ends_at": "10:00:00",
+            "slot_idx": 29
+          }
+        },
+        "moved_to": 29
+      },
+      {
+        "conflict": {
+          "type": "teacher_conflict",
+          "slot": 16,
+          "teacher_id": "T826211",
+          "existing": {
+            "class_id": 14,
+            "subject_id": 1,
+            "teacher_id": "T826211",
+            "weekday": 3,
+            "starts_at": "10:00:00",
+            "ends_at": "12:00:00",
+            "slot_idx": 16
+          },
+          "new": {
+            "class_id": 27,
+            "subject_id": 1,
+            "teacher_id": "T826211",
+            "weekday": 3,
+            "starts_at": "10:00:00",
+            "ends_at": "12:00:00",
+            "slot_idx": 2
+          }
+        },
+        "moved_to": 2
+      },
+      {
+        "conflict": {
+          "type": "teacher_conflict",
+          "slot": 29,
+          "teacher_id": "T225813",
+          "existing": {
+            "class_id": 23,
+            "subject_id": 1,
+            "teacher_id": "T225813",
+            "weekday": 5,
+            "starts_at": "15:00:00",
+            "ends_at": "17:00:00",
+            "slot_idx": 29
+          },
+          "new": {
+            "class_id": 28,
+            "subject_id": 1,
+            "teacher_id": "T225813",
+            "weekday": 5,
+            "starts_at": "15:00:00",
+            "ends_at": "17:00:00",
+            "slot_idx": 30
+          }
+        },
+        "moved_to": 30
+      },
+      {
+        "conflict": {
+          "type": "teacher_conflict",
+          "slot": 14,
+          "teacher_id": "T225813",
+          "existing": {
+            "class_id": 28,
+            "subject_id": 1,
+            "teacher_id": "T225813",
+            "weekday": 3,
+            "starts_at": "07:00:00",
+            "ends_at": "10:00:00",
+            "slot_idx": 14
+          },
+          "new": {
+            "class_id": 26,
+            "subject_id": 1,
+            "teacher_id": "T225813",
+            "weekday": 3,
+            "starts_at": "07:00:00",
+            "ends_at": "10:00:00",
+            "slot_idx": 18
+          }
+        },
+        "moved_to": 18
+      },
+      {
+        "conflict": {
+          "type": "teacher_conflict",
+          "slot": 25,
+          "teacher_id": "T832829",
+          "existing": {
+            "class_id": 33,
+            "subject_id": 1,
+            "teacher_id": "T832829",
+            "weekday": 5,
+            "starts_at": "07:00:00",
+            "ends_at": "10:00:00",
+            "slot_idx": 25
+          },
+          "new": {
+            "class_id": 19,
+            "subject_id": 1,
+            "teacher_id": "T832829",
+            "weekday": 5,
+            "starts_at": "07:00:00",
+            "ends_at": "10:00:00",
+            "slot_idx": 26
+          }
+        },
+        "moved_to": 26
+      },
+      {
+        "conflict": {
+          "type": "teacher_conflict",
+          "slot": 18,
+          "teacher_id": "T522278",
+          "existing": {
+            "class_id": 28,
+            "subject_id": 3,
+            "teacher_id": "T522278",
+            "weekday": 4,
+            "starts_at": "07:00:00",
+            "ends_at": "10:00:00",
+            "slot_idx": 18
+          },
+          "new": {
+            "class_id": 19,
+            "subject_id": 3,
+            "teacher_id": "T522278",
+            "weekday": 4,
+            "starts_at": "07:00:00",
+            "ends_at": "10:00:00",
+            "slot_idx": 25
+          }
+        },
+        "moved_to": 25
+      },
+      {
+        "conflict": {
+          "type": "teacher_conflict",
+          "slot": 6,
+          "teacher_id": "T493394",
+          "existing": {
+            "class_id": 31,
+            "subject_id": 8,
+            "teacher_id": "T493394",
+            "weekday": 1,
+            "starts_at": "17:00:00",
+            "ends_at": "19:00:00",
+            "slot_idx": 6
+          },
+          "new": {
+            "class_id": 20,
+            "subject_id": 8,
+            "teacher_id": "T493394",
+            "weekday": 1,
+            "starts_at": "17:00:00",
+            "ends_at": "19:00:00",
+            "slot_idx": 26
+          }
+        },
+        "moved_to": 26
+      },
+      {
+        "conflict": {
+          "type": "teacher_conflict",
+          "slot": 2,
+          "teacher_id": "T826211",
+          "existing": {
+            "class_id": 27,
+            "subject_id": 1,
+            "teacher_id": "T826211",
+            "weekday": 3,
+            "starts_at": "10:00:00",
+            "ends_at": "12:00:00",
+            "slot_idx": 2
+          },
+          "new": {
+            "class_id": 17,
+            "subject_id": 1,
+            "teacher_id": "T826211",
+            "weekday": 1,
+            "starts_at": "10:00:00",
+            "ends_at": "13:00:00",
+            "slot_idx": 26
+          }
+        },
+        "moved_to": 26
+      },
+      {
+        "conflict": {
+          "type": "teacher_conflict",
+          "slot": 19,
+          "teacher_id": "T644713",
+          "existing": {
+            "class_id": 27,
+            "subject_id": 2,
+            "teacher_id": "T644713",
+            "weekday": 4,
+            "starts_at": "08:00:00",
+            "ends_at": "10:00:00",
+            "slot_idx": 19
+          },
+          "new": {
+            "class_id": 18,
+            "subject_id": 2,
+            "teacher_id": "T644713",
+            "weekday": 4,
+            "starts_at": "08:00:00",
+            "ends_at": "10:00:00",
+            "slot_idx": 3
+          }
+        },
+        "moved_to": 3
+      },
+      {
+        "conflict": {
+          "type": "teacher_conflict",
+          "slot": 28,
+          "teacher_id": "T933385",
+          "existing": {
+            "class_id": 19,
+            "subject_id": 9,
+            "teacher_id": "T933385",
+            "weekday": 5,
+            "starts_at": "10:00:00",
+            "ends_at": "12:00:00",
+            "slot_idx": 28
+          },
+          "new": {
+            "class_id": 9,
+            "subject_id": 9,
+            "teacher_id": "T933385",
+            "weekday": 5,
+            "starts_at": "10:00:00",
+            "ends_at": "12:00:00",
+            "slot_idx": 14
+          }
+        },
+        "moved_to": 14
+      },
+      {
+        "conflict": {
+          "type": "teacher_conflict",
+          "slot": 5,
+          "teacher_id": "T556583",
+          "existing": {
+            "class_id": 33,
+            "subject_id": 3,
+            "teacher_id": "T556583",
+            "weekday": 1,
+            "starts_at": "15:00:00",
+            "ends_at": "17:00:00",
+            "slot_idx": 5
+          },
+          "new": {
+            "class_id": 9,
+            "subject_id": 3,
+            "teacher_id": "T556583",
+            "weekday": 1,
+            "starts_at": "15:00:00",
+            "ends_at": "17:00:00",
+            "slot_idx": 25
+          }
+        },
+        "moved_to": 25
+      },
+      {
+        "conflict": {
+          "type": "teacher_conflict",
+          "slot": 12,
+          "teacher_id": "T319500",
+          "existing": {
+            "class_id": 23,
+            "subject_id": 2,
+            "teacher_id": "T319500",
+            "weekday": 2,
+            "starts_at": "15:00:00",
+            "ends_at": "17:00:00",
+            "slot_idx": 12
+          },
+          "new": {
+            "class_id": 9,
+            "subject_id": 2,
+            "teacher_id": "T319500",
+            "weekday": 2,
+            "starts_at": "15:00:00",
+            "ends_at": "17:00:00",
+            "slot_idx": 22
+          }
+        },
+        "moved_to": 22
+      },
+      {
+        "conflict": {
+          "type": "teacher_conflict",
+          "slot": 20,
+          "teacher_id": "T652079",
+          "existing": {
+            "class_id": 34,
+            "subject_id": 9,
+            "teacher_id": "T652079",
+            "weekday": 4,
+            "starts_at": "10:00:00",
+            "ends_at": "12:00:00",
+            "slot_idx": 20
+          },
+          "new": {
+            "class_id": 11,
+            "subject_id": 9,
+            "teacher_id": "T652079",
+            "weekday": 4,
+            "starts_at": "10:00:00",
+            "ends_at": "12:00:00",
+            "slot_idx": 7
+          }
+        },
+        "moved_to": 7
+      },
+      {
+        "conflict": {
+          "type": "teacher_conflict",
+          "slot": 0,
+          "teacher_id": "T417783",
+          "existing": {
+            "class_id": 16,
+            "subject_id": 6,
+            "teacher_id": "T417783",
+            "weekday": 1,
+            "starts_at": "07:00:00",
+            "ends_at": "10:00:00",
+            "slot_idx": 0
+          },
+          "new": {
+            "class_id": 12,
+            "subject_id": 6,
+            "teacher_id": "T417783",
+            "weekday": 1,
+            "starts_at": "07:00:00",
+            "ends_at": "10:00:00",
+            "slot_idx": 24
+          }
+        },
+        "moved_to": 24
+      },
+      {
+        "conflict": {
+          "type": "teacher_conflict",
+          "slot": 3,
+          "teacher_id": "T644713",
+          "existing": {
+            "class_id": 18,
+            "subject_id": 2,
+            "teacher_id": "T644713",
+            "weekday": 4,
+            "starts_at": "08:00:00",
+            "ends_at": "10:00:00",
+            "slot_idx": 3
+          },
+          "new": {
+            "class_id": 4,
+            "subject_id": 2,
+            "teacher_id": "T644713",
+            "weekday": 1,
+            "starts_at": "10:00:00",
+            "ends_at": "12:00:00",
+            "slot_idx": 14
+          }
+        },
+        "moved_to": 14
+      },
+      {
+        "conflict": {
+          "type": "teacher_conflict",
+          "slot": 31,
+          "teacher_id": "T480146",
+          "existing": {
+            "class_id": 23,
+            "subject_id": 9,
+            "teacher_id": "T480146",
+            "weekday": 5,
+            "starts_at": "17:00:00",
+            "ends_at": "19:00:00",
+            "slot_idx": 31
+          },
+          "new": {
+            "class_id": 7,
+            "subject_id": 9,
+            "teacher_id": "T480146",
+            "weekday": 5,
+            "starts_at": "17:00:00",
+            "ends_at": "19:00:00",
+            "slot_idx": 4
+          }
+        },
+        "moved_to": 4
+      },
+      {
+        "conflict": {
+          "type": "teacher_conflict",
+          "slot": 12,
+          "teacher_id": "T925142",
+          "existing": {
+            "class_id": 13,
+            "subject_id": 2,
+            "teacher_id": "T925142",
+            "weekday": 2,
+            "starts_at": "15:00:00",
+            "ends_at": "17:00:00",
+            "slot_idx": 12
+          },
+          "new": {
+            "class_id": 7,
+            "subject_id": 2,
+            "teacher_id": "T925142",
+            "weekday": 2,
+            "starts_at": "15:00:00",
+            "ends_at": "17:00:00",
+            "slot_idx": 16
+          }
+        },
+        "moved_to": 16
+      },
+      {
+        "conflict": {
+          "type": "teacher_conflict",
+          "slot": 11,
+          "teacher_id": "T638938",
+          "existing": {
+            "class_id": 30,
+            "subject_id": 10,
+            "teacher_id": "T638938",
+            "weekday": 2,
+            "starts_at": "15:00:00",
+            "ends_at": "18:00:00",
+            "slot_idx": 11
+          },
+          "new": {
+            "class_id": 8,
+            "subject_id": 10,
+            "teacher_id": "T638938",
+            "weekday": 2,
+            "starts_at": "15:00:00",
+            "ends_at": "18:00:00",
+            "slot_idx": 28
+          }
+        },
+        "moved_to": 28
+      },
+      {
+        "conflict": {
+          "type": "teacher_conflict",
+          "slot": 9,
+          "teacher_id": "T097391",
+          "existing": {
+            "class_id": 30,
+            "subject_id": 6,
+            "teacher_id": "T097391",
+            "weekday": 2,
+            "starts_at": "10:00:00",
+            "ends_at": "13:00:00",
+            "slot_idx": 9
+          },
+          "new": {
+            "class_id": 8,
+            "subject_id": 6,
+            "teacher_id": "T097391",
+            "weekday": 2,
+            "starts_at": "10:00:00",
+            "ends_at": "13:00:00",
+            "slot_idx": 18
+          }
+        },
+        "moved_to": 18
+      },
+      {
+        "conflict": {
+          "type": "teacher_conflict",
+          "slot": 15,
+          "teacher_id": "T701785",
+          "existing": {
+            "class_id": 8,
+            "subject_id": 1,
+            "teacher_id": "T701785",
+            "weekday": 3,
+            "starts_at": "08:00:00",
+            "ends_at": "10:00:00",
+            "slot_idx": 15
+          },
+          "new": {
+            "class_id": 5,
+            "subject_id": 1,
+            "teacher_id": "T701785",
+            "weekday": 3,
+            "starts_at": "08:00:00",
+            "ends_at": "10:00:00",
+            "slot_idx": 8
+          }
+        },
+        "moved_to": 8
+      },
+      {
+        "conflict": {
+          "type": "teacher_conflict",
+          "slot": 31,
+          "teacher_id": "T375808",
+          "existing": {
+            "class_id": 31,
+            "subject_id": 2,
+            "teacher_id": "T375808",
+            "weekday": 5,
+            "starts_at": "17:00:00",
+            "ends_at": "19:00:00",
+            "slot_idx": 31
+          },
+          "new": {
+            "class_id": 6,
+            "subject_id": 2,
+            "teacher_id": "T375808",
+            "weekday": 5,
+            "starts_at": "17:00:00",
+            "ends_at": "19:00:00",
+            "slot_idx": 18
+          }
+        },
+        "moved_to": 18
+      },
+      {
+        "conflict": {
+          "type": "teacher_conflict",
+          "slot": 23,
+          "teacher_id": "T777877",
+          "existing": {
+            "class_id": 35,
+            "subject_id": 9,
+            "teacher_id": "T777877",
+            "weekday": 4,
+            "starts_at": "15:00:00",
+            "ends_at": "17:00:00",
+            "slot_idx": 23
+          },
+          "new": {
+            "class_id": 1,
+            "subject_id": 9,
+            "teacher_id": "T777877",
+            "weekday": 4,
+            "starts_at": "15:00:00",
+            "ends_at": "17:00:00",
+            "slot_idx": 11
+          }
+        },
+        "moved_to": 11
+      },
+      {
+        "conflict": {
+          "type": "teacher_conflict",
+          "slot": 23,
+          "teacher_id": "T479230",
+          "existing": {
+            "class_id": 26,
+            "subject_id": 9,
+            "teacher_id": "T479230",
+            "weekday": 4,
+            "starts_at": "15:00:00",
+            "ends_at": "17:00:00",
+            "slot_idx": 23
+          },
+          "new": {
+            "class_id": 2,
+            "subject_id": 9,
+            "teacher_id": "T479230",
+            "weekday": 4,
+            "starts_at": "15:00:00",
+            "ends_at": "17:00:00",
+            "slot_idx": 16
+          }
+        },
+        "moved_to": 16
+      }
+    ],
+    "teacher_conflicts_after_merge": [
+      {
+        "teacher_id": "T976480",
+        "day": 5,
+        "conflict_between": [
+          {
+            "class_id": 15,
+            "subject_id": 5,
+            "teacher_id": "T976480",
+            "weekday": 5,
+            "starts_at": "15:00:00",
+            "ends_at": "18:00:00",
+            "slot_idx": 30
+          },
+          {
+            "class_id": 5,
+            "subject_id": 5,
+            "teacher_id": "T976480",
+            "weekday": 5,
+            "starts_at": "17:00:00",
+            "ends_at": "19:00:00",
+            "slot_idx": 31
+          }
+        ]
+      },
+      {
+        "teacher_id": "T563247",
+        "day": 5,
+        "conflict_between": [
+          {
+            "class_id": 23,
+            "subject_id": 7,
+            "teacher_id": "T563247",
+            "weekday": 5,
+            "starts_at": "10:00:00",
+            "ends_at": "12:00:00",
+            "slot_idx": 28
+          },
+          {
+            "class_id": 11,
+            "subject_id": 7,
+            "teacher_id": "T563247",
+            "weekday": 5,
+            "starts_at": "10:00:00",
+            "ends_at": "13:00:00",
+            "slot_idx": 27
+          }
+        ]
+      },
+      {
+        "teacher_id": "T225813",
+        "day": 1,
+        "conflict_between": [
+          {
+            "class_id": 23,
+            "subject_id": 1,
+            "teacher_id": "T225813",
+            "weekday": 1,
+            "starts_at": "15:00:00",
+            "ends_at": "17:00:00",
+            "slot_idx": 5
+          },
+          {
+            "class_id": 26,
+            "subject_id": 1,
+            "teacher_id": "T225813",
+            "weekday": 1,
+            "starts_at": "15:00:00",
+            "ends_at": "18:00:00",
+            "slot_idx": 4
+          }
+        ]
+      },
+      {
+        "teacher_id": "T059448",
+        "day": 1,
+        "conflict_between": [
+          {
+            "class_id": 24,
+            "subject_id": 7,
+            "teacher_id": "T059448",
+            "weekday": 1,
+            "starts_at": "07:00:00",
+            "ends_at": "10:00:00",
+            "slot_idx": 0
+          },
+          {
+            "class_id": 14,
+            "subject_id": 7,
+            "teacher_id": "T059448",
+            "weekday": 1,
+            "starts_at": "07:00:00",
+            "ends_at": "10:00:00",
+            "slot_idx": 0
+          }
+        ]
+      },
+      {
+        "teacher_id": "T844914",
+        "day": 3,
+        "conflict_between": [
+          {
+            "class_id": 24,
+            "subject_id": 4,
+            "teacher_id": "T844914",
+            "weekday": 3,
+            "starts_at": "10:00:00",
+            "ends_at": "13:00:00",
+            "slot_idx": 17
+          },
+          {
+            "class_id": 8,
+            "subject_id": 4,
+            "teacher_id": "T844914",
+            "weekday": 3,
+            "starts_at": "10:00:00",
+            "ends_at": "12:00:00",
+            "slot_idx": 16
+          }
+        ]
+      },
+      {
+        "teacher_id": "T796428",
+        "day": 4,
+        "conflict_between": [
+          {
+            "class_id": 24,
+            "subject_id": 1,
+            "teacher_id": "T796428",
+            "weekday": 4,
+            "starts_at": "15:00:00",
+            "ends_at": "17:00:00",
+            "slot_idx": 23
+          },
+          {
+            "class_id": 4,
+            "subject_id": 1,
+            "teacher_id": "T796428",
+            "weekday": 4,
+            "starts_at": "15:00:00",
+            "ends_at": "18:00:00",
+            "slot_idx": 22
+          }
+        ]
+      },
+      {
+        "teacher_id": "T332038",
+        "day": 3,
+        "conflict_between": [
+          {
+            "class_id": 30,
+            "subject_id": 4,
+            "teacher_id": "T332038",
+            "weekday": 3,
+            "starts_at": "07:00:00",
+            "ends_at": "10:00:00",
+            "slot_idx": 14
+          },
+          {
+            "class_id": 4,
+            "subject_id": 4,
+            "teacher_id": "T332038",
+            "weekday": 3,
+            "starts_at": "08:00:00",
+            "ends_at": "10:00:00",
+            "slot_idx": 15
+          }
+        ]
+      },
+      {
+        "teacher_id": "T332038",
+        "day": 5,
+        "conflict_between": [
+          {
+            "class_id": 30,
+            "subject_id": 4,
+            "teacher_id": "T332038",
+            "weekday": 5,
+            "starts_at": "10:00:00",
+            "ends_at": "13:00:00",
+            "slot_idx": 27
+          },
+          {
+            "class_id": 4,
+            "subject_id": 4,
+            "teacher_id": "T332038",
+            "weekday": 5,
+            "starts_at": "10:00:00",
+            "ends_at": "12:00:00",
+            "slot_idx": 28
+          }
+        ]
+      },
+      {
+        "teacher_id": "T641191",
+        "day": 1,
+        "conflict_between": [
+          {
+            "class_id": 30,
+            "subject_id": 8,
+            "teacher_id": "T641191",
+            "weekday": 1,
+            "starts_at": "15:00:00",
+            "ends_at": "18:00:00",
+            "slot_idx": 4
+          },
+          {
+            "class_id": 34,
+            "subject_id": 8,
+            "teacher_id": "T641191",
+            "weekday": 1,
+            "starts_at": "15:00:00",
+            "ends_at": "17:00:00",
+            "slot_idx": 5
+          }
+        ]
+      },
+      {
+        "teacher_id": "T641191",
+        "day": 5,
+        "conflict_between": [
+          {
+            "class_id": 30,
+            "subject_id": 8,
+            "teacher_id": "T641191",
+            "weekday": 5,
+            "starts_at": "15:00:00",
+            "ends_at": "18:00:00",
+            "slot_idx": 30
+          },
+          {
+            "class_id": 34,
+            "subject_id": 8,
+            "teacher_id": "T641191",
+            "weekday": 5,
+            "starts_at": "17:00:00",
+            "ends_at": "19:00:00",
+            "slot_idx": 31
+          }
+        ]
+      },
+      {
+        "teacher_id": "T826211",
+        "day": 3,
+        "conflict_between": [
+          {
+            "class_id": 14,
+            "subject_id": 1,
+            "teacher_id": "T826211",
+            "weekday": 3,
+            "starts_at": "10:00:00",
+            "ends_at": "12:00:00",
+            "slot_idx": 16
+          },
+          {
+            "class_id": 17,
+            "subject_id": 1,
+            "teacher_id": "T826211",
+            "weekday": 3,
+            "starts_at": "10:00:00",
+            "ends_at": "13:00:00",
+            "slot_idx": 17
+          }
+        ]
+      },
+      {
+        "teacher_id": "T811779",
+        "day": 4,
+        "conflict_between": [
+          {
+            "class_id": 31,
+            "subject_id": 5,
+            "teacher_id": "T811779",
+            "weekday": 4,
+            "starts_at": "07:00:00",
+            "ends_at": "10:00:00",
+            "slot_idx": 18
+          },
+          {
+            "class_id": 3,
+            "subject_id": 5,
+            "teacher_id": "T811779",
+            "weekday": 4,
+            "starts_at": "08:00:00",
+            "ends_at": "10:00:00",
+            "slot_idx": 19
+          }
+        ]
+      },
+      {
+        "teacher_id": "T715717",
+        "day": 2,
+        "conflict_between": [
+          {
+            "class_id": 35,
+            "subject_id": 1,
+            "teacher_id": "T715717",
+            "weekday": 2,
+            "starts_at": "07:00:00",
+            "ends_at": "10:00:00",
+            "slot_idx": 7
+          },
+          {
+            "class_id": 6,
+            "subject_id": 1,
+            "teacher_id": "T715717",
+            "weekday": 2,
+            "starts_at": "08:00:00",
+            "ends_at": "10:00:00",
+            "slot_idx": 8
+          }
+        ]
+      },
+      {
+        "teacher_id": "T584036",
+        "day": 1,
+        "conflict_between": [
+          {
+            "class_id": 35,
+            "subject_id": 2,
+            "teacher_id": "T584036",
+            "weekday": 1,
+            "starts_at": "10:00:00",
+            "ends_at": "13:00:00",
+            "slot_idx": 2
+          },
+          {
+            "class_id": 8,
+            "subject_id": 2,
+            "teacher_id": "T584036",
+            "weekday": 1,
+            "starts_at": "10:00:00",
+            "ends_at": "12:00:00",
+            "slot_idx": 3
+          }
+        ]
+      },
+      {
+        "teacher_id": "T662375",
+        "day": 5,
+        "conflict_between": [
+          {
+            "class_id": 18,
+            "subject_id": 3,
+            "teacher_id": "T662375",
+            "weekday": 5,
+            "starts_at": "15:00:00",
+            "ends_at": "18:00:00",
+            "slot_idx": 30
+          },
+          {
+            "class_id": 10,
+            "subject_id": 3,
+            "teacher_id": "T662375",
+            "weekday": 5,
+            "starts_at": "15:00:00",
+            "ends_at": "17:00:00",
+            "slot_idx": 29
+          }
+        ]
+      },
+      {
+        "teacher_id": "T590076",
+        "day": 1,
+        "conflict_between": [
+          {
+            "class_id": 34,
+            "subject_id": 1,
+            "teacher_id": "T590076",
+            "weekday": 1,
+            "starts_at": "10:00:00",
+            "ends_at": "13:00:00",
+            "slot_idx": 2
+          },
+          {
+            "class_id": 25,
+            "subject_id": 1,
+            "teacher_id": "T590076",
+            "weekday": 1,
+            "starts_at": "10:00:00",
+            "ends_at": "12:00:00",
+            "slot_idx": 3
+          }
+        ]
+      },
+      {
+        "teacher_id": "T242534",
+        "day": 5,
+        "conflict_between": [
+          {
+            "class_id": 20,
+            "subject_id": 3,
+            "teacher_id": "T242534",
+            "weekday": 5,
+            "starts_at": "07:00:00",
+            "ends_at": "10:00:00",
+            "slot_idx": 25
+          },
+          {
+            "class_id": 5,
+            "subject_id": 3,
+            "teacher_id": "T242534",
+            "weekday": 5,
+            "starts_at": "08:00:00",
+            "ends_at": "10:00:00",
+            "slot_idx": 26
+          }
+        ]
+      },
+      {
+        "teacher_id": "T418167",
+        "day": 5,
+        "conflict_between": [
+          {
+            "class_id": 20,
+            "subject_id": 2,
+            "teacher_id": "T418167",
+            "weekday": 5,
+            "starts_at": "10:00:00",
+            "ends_at": "13:00:00",
+            "slot_idx": 27
+          },
+          {
+            "class_id": 12,
+            "subject_id": 2,
+            "teacher_id": "T418167",
+            "weekday": 5,
+            "starts_at": "10:00:00",
+            "ends_at": "12:00:00",
+            "slot_idx": 28
+          }
+        ]
+      },
+      {
+        "teacher_id": "T720763",
+        "day": 4,
+        "conflict_between": [
+          {
+            "class_id": 17,
+            "subject_id": 5,
+            "teacher_id": "T720763",
+            "weekday": 4,
+            "starts_at": "10:00:00",
+            "ends_at": "13:00:00",
+            "slot_idx": 21
+          },
+          {
+            "class_id": 8,
+            "subject_id": 5,
+            "teacher_id": "T720763",
+            "weekday": 4,
+            "starts_at": "10:00:00",
+            "ends_at": "12:00:00",
+            "slot_idx": 20
+          }
+        ]
+      }
+    ]
+  },
+  "persisted": {
+    "created": 462
+  },
+  "end": "2025-10-25T21:42:28.687931",
+  "global_entries_count": 462
+}
