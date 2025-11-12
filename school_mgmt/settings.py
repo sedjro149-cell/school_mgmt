@@ -44,7 +44,8 @@ if _env_hosts:
     ALLOWED_HOSTS = [h.strip() for h in _env_hosts.split(",") if h.strip()]
 else:
     # safe defaults for dev
-    ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'schoolmgmt-production.up.railway.app']
+
 # You can append runtime host names if needed:
 _extra_host = os.environ.get("EXTRA_ALLOWED_HOST")
 if _extra_host:
