@@ -62,7 +62,7 @@ from academics.models import SchoolClass, ClassScheduleEntry, Subject
 # n'utilise pas AcademicStudentSerializer ici pour éviter ambiguïtés
 # on fournit une représentation compacte et fiable des enfants :
 
-class ParentStudentNestedSerializer(serializers.Serializer):
+class ParentStudentNestedSerializer(serializers.Serializer):   
     id = serializers.CharField()
     username = serializers.SerializerMethodField()
     first_name = serializers.SerializerMethodField()
@@ -76,7 +76,7 @@ class ParentStudentNestedSerializer(serializers.Serializer):
     def get_first_name(self, obj):
         u = getattr(obj, "user", None)
         return getattr(u, "first_name", None) or getattr(obj, "firstname", None) or getattr(obj, "first_name", None) or ""
-
+ 
     def get_last_name(self, obj):
         u = getattr(obj, "user", None)
         return getattr(u, "last_name", None) or getattr(obj, "lastname", None) or getattr(obj, "last_name", None) or ""
@@ -136,18 +136,25 @@ class ParentProfileSerializer(serializers.ModelSerializer):
 
 
 
-# =======================
+## =======================
 # ===== STUDENT SERIALIZER
 # =======================
+from rest_framework import serializers
+from django.contrib.auth import get_user_model
+# Assure-toi d'importer tes modèles correctement
+# from .models import Student, SchoolClass, Parent 
+
+User = get_user_model()
+
 class StudentSerializer(serializers.ModelSerializer):
-    # nested user (read + write)
+    # Nested user (Attention: si UserSerializer est lourd, ça ralentira, mais c'est gérable avec select_related)
     user = UserSerializer()
 
-    # convenience read-only name fields (synchronisées côté modèle via save())
+    # Read-only fields
     firstname = serializers.CharField(source="user.first_name", read_only=True)
     lastname = serializers.CharField(source="user.last_name", read_only=True)
 
-    # READ representations
+    # SerializerMethodFields
     school_class = serializers.SerializerMethodField(read_only=True)
     parent = serializers.SerializerMethodField(read_only=True)
 
@@ -170,44 +177,36 @@ class StudentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
         fields = (
-            "id",
-            "user",
-            "firstname",
-            "lastname",
-            "sex",
-            "date_of_birth",
-            "school_class",
-            "school_class_id",
-            "parent",
-            "parent_id",
+            "id", "user", "firstname", "lastname", "sex", 
+            "date_of_birth", "school_class", "school_class_id", 
+            "parent", "parent_id",
         )
 
     def create(self, validated_data):
         user_data = validated_data.pop("user")
-        user = UserSerializer.create(UserSerializer(), validated_data=user_data)
+        # On utilise le UserSerializer pour créer le user proprement
+        user = UserSerializer().create(validated_data=user_data)
         student = Student.objects.create(user=user, **validated_data)
         return student
 
     def update(self, instance, validated_data):
         user_data = validated_data.pop("user", None)
         if user_data:
-            UserSerializer.update(UserSerializer(), instance.user, user_data)
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        return instance
+            UserSerializer().update(instance.user, user_data)
+        
+        return super().update(instance, validated_data)
 
     def get_school_class(self, obj):
+        # Ici, obj.school_class est déjà chargé grâce au select_related du ViewSet
         if obj.school_class:
             return {"id": obj.school_class.id, "name": obj.school_class.name}
         return None
 
     def get_parent(self, obj):
-        # retourne un objet minimal pour le parent (id + username) et facilite l'affichage côté front
+        # Ici, obj.parent ET obj.parent.user sont déjà chargés
         if obj.parent:
             return {"id": obj.parent.id, "user": {"username": obj.parent.user.username}}
         return None
-
 
 class StudentProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer()

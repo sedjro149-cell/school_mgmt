@@ -2,7 +2,7 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from decimal import Decimal
 from core.models import Student
-from core.models import Teacher, Student
+from core.models import Teacher, Student, User
 
 
 
@@ -191,3 +191,72 @@ class TimeSlot(models.Model):
     def __str__(self):
         day_display = Weekday(self.day).label  # pour afficher "Monday", "Tuesday", etc.
         return f"{day_display} {self.start_time.strftime('%H:%M')} - {self.end_time.strftime('%H:%M')}"
+# models.py
+from django.db import models
+
+class StudentAttendance(models.Model):
+    STATUS_CHOICES = [
+        ('ABSENT', 'Absent'),
+        ('LATE', 'Retard'),
+        ('EXCUSED', 'Excusé'),
+    ]
+
+    student = models.ForeignKey(
+        "core.Student", 
+        on_delete=models.CASCADE, 
+        related_name="attendances"
+    )
+    # On lie l'absence à un CRÉNEAU d'emploi du temps précis
+    schedule_entry = models.ForeignKey(
+        ClassScheduleEntry, 
+        on_delete=models.CASCADE, 
+        related_name="student_attendances"
+    )
+    date = models.DateField() # La date réelle (ex: 2025-12-01)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='ABSENT')
+    reason = models.CharField(max_length=255, blank=True, null=True) # "Maladie", "Non justifié"...
+
+    class Meta:
+        # Un élève ne peut pas être marqué absent deux fois pour le même cours le même jour
+        unique_together = ('student', 'schedule_entry', 'date')
+        indexes = [
+            models.Index(fields=['date', 'schedule_entry']),
+        ]
+
+    def __str__(self):
+        return f"{self.student} - {self.status} - {self.date}"
+class Announcement(models.Model):
+
+    title = models.CharField(max_length=255, verbose_name="Titre")
+
+    content = models.TextField(verbose_name="Contenu")
+
+    image = models.ImageField(upload_to="announcements/", null=True, blank=True, verbose_name="Image")
+
+    
+
+    # Pour savoir qui a posté (généralement un admin)
+
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="announcements")
+
+    
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    updated_at = models.DateTimeField(auto_now=True)
+
+
+
+    class Meta:
+
+        ordering = ["-created_at"] # Les plus récentes en premier
+
+        verbose_name = "Annonce"
+
+        verbose_name_plural = "Annonces"
+
+
+
+    def __str__(self):
+
+        return f"{self.title} ({self.created_at.strftime('%d/%m/%Y')})"

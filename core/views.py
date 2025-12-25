@@ -37,54 +37,58 @@ from academics.services.report_cards import compute_report_cards_from_grades
 # ------------------------------------------------------------------
 class StudentViewSet(viewsets.ModelViewSet):
     """
-    ViewSet pour gérer les élèves.
-    - Admin / staff : accès à tous les élèves
-    - Parent : accès à ses enfants
-    - Élève : accès à son propre profil
-    - Enseignant : accès aux élèves des classes qu'il enseigne
+    ViewSet optimisé avec Eager Loading (select_related).
     """
+    # LIGNE AJOUTÉE ICI POUR CORRIGER L'ERREUR "basename"
     queryset = Student.objects.all()
+    
     serializer_class = StudentSerializer
     permission_classes = [IsAuthenticated, IsParentOrReadOnly]
 
     def get_queryset(self):
         user = self.request.user
+        
+        # OPTIMISATION CRITIQUE :
+        # On écrase le queryset par défaut pour appliquer le select_related
+        queryset = Student.objects.select_related(
+            'user', 
+            'school_class', 
+            'parent__user'
+        ).all()
 
         # Admin / staff
         if user.is_staff or user.is_superuser:
-            return Student.objects.all()
+            return queryset
 
         # Parent : uniquement ses enfants
         if hasattr(user, "parent"):
-            return Student.objects.filter(parent=user.parent)
+            return queryset.filter(parent=user.parent)
 
         # Élève : uniquement lui-même
         if hasattr(user, "student"):
-            return Student.objects.filter(user=user)
+            return queryset.filter(user=user)
 
         # Enseignant : élèves des classes où il enseigne
         if hasattr(user, "teacher"):
             teacher = user.teacher
             class_ids = teacher.classes.values_list("id", flat=True)
-            return Student.objects.filter(school_class_id__in=class_ids).distinct()
+            return queryset.filter(school_class_id__in=class_ids).distinct()
 
-        return Student.objects.none()
+        return queryset.none()
 
     @action(detail=False, methods=["get"], url_path=r"by-class/(?P<class_id>[^/.]+)")
     def by_class(self, request, class_id=None):
-        students = self.get_queryset().filter(school_class_id=class_id).order_by("user__first_name", "user__last_name")
+        # On filtre sur le queryset optimisé
+        students = self.get_queryset().filter(school_class_id=class_id).order_by("user__last_name", "user__first_name")
         serializer = self.get_serializer(students, many=True)
         return Response(serializer.data)
 
     @action(detail=False, methods=["get"], url_path="by-teacher")
     def by_teacher(self, request):
-        user = request.user
-        if not hasattr(user, "teacher"):
-            return Response({"detail": "Vous n’êtes pas un enseignant."}, status=403)
-
-        teacher = user.teacher
-        class_ids = teacher.classes.values_list("id", flat=True)
-        students = Student.objects.filter(school_class_id__in=class_ids).order_by("user__first_name", "user__last_name").distinct()
+        if not hasattr(request.user, "teacher"):
+             return Response({"detail": "Vous n’êtes pas un enseignant."}, status=403)
+        
+        students = self.get_queryset().order_by("user__last_name", "user__first_name")
         serializer = self.get_serializer(students, many=True)
         return Response(serializer.data)
 

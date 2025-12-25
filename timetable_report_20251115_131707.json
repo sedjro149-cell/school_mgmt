@@ -1,0 +1,319 @@
+{
+  "start": "2025-11-15T13:16:11.985400",
+  "levels": [
+    {
+      "level_id": 8,
+      "name": "2ndB",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 496,
+        "penalty_same_day": 109,
+        "penalty_consecutive": 217
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 15,
+      "name": "TleA",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 496,
+        "penalty_same_day": 107,
+        "penalty_consecutive": 213
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 12,
+      "name": "1èreB",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 487,
+        "penalty_same_day": 105,
+        "penalty_consecutive": 209
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 7,
+      "name": "2ndA",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 469,
+        "penalty_same_day": 103,
+        "penalty_consecutive": 205
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 16,
+      "name": "TleB",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 461,
+        "penalty_same_day": 103,
+        "penalty_consecutive": 205
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 11,
+      "name": "1èreAA",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 465,
+        "penalty_same_day": 102,
+        "penalty_consecutive": 203
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 18,
+      "name": "TleD",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 483,
+        "penalty_same_day": 102,
+        "penalty_consecutive": 203
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 17,
+      "name": "TleC",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 466,
+        "penalty_same_day": 98,
+        "penalty_consecutive": 198
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 13,
+      "name": "1èreC",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [
+          {
+            "class": "1èreC2 (1èreC)",
+            "class_id": 26,
+            "subject": "EcoFam",
+            "subject_id": 11
+          }
+        ],
+        "status": 4,
+        "est_vars_after_pruning": 445,
+        "penalty_same_day": 92,
+        "penalty_consecutive": 186
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 14,
+      "name": "1èreD",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 438,
+        "penalty_same_day": 94,
+        "penalty_consecutive": 190
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 10,
+      "name": "2ndD",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 414,
+        "penalty_same_day": 92,
+        "penalty_consecutive": 186
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 9,
+      "name": "2ndC",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [
+          {
+            "class": "2ndC1 (2ndC)",
+            "class_id": 17,
+            "subject": "EPS",
+            "subject_id": 10
+          }
+        ],
+        "status": 4,
+        "est_vars_after_pruning": 412,
+        "penalty_same_day": 88,
+        "penalty_consecutive": 179
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 5,
+      "name": "3eMC",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 371,
+        "penalty_same_day": 78,
+        "penalty_consecutive": 160
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 6,
+      "name": "3eML",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 373,
+        "penalty_same_day": 78,
+        "penalty_consecutive": 160
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 3,
+      "name": "4eMC",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 364,
+        "penalty_same_day": 78,
+        "penalty_consecutive": 160
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 4,
+      "name": "4eML",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 343,
+        "penalty_same_day": 78,
+        "penalty_consecutive": 160
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 2,
+      "name": "5e",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 352,
+        "penalty_same_day": 74,
+        "penalty_consecutive": 152
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 1,
+      "name": "6e",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 322,
+        "penalty_same_day": 70,
+        "penalty_consecutive": 144
+      },
+      "attempt": 1
+    }
+  ],
+  "merged": {
+    "conflicts": [],
+    "resolved": [],
+    "shortfalls": [],
+    "duplicates_resolved": [
+      {
+        "teacher_id": "T976480",
+        "class_id": 15,
+        "weekday": 1,
+        "action": "k_cycle",
+        "detail": {
+          "cycle_len": 1
+        }
+      },
+      {
+        "teacher_id": "T735934",
+        "class_id": 16,
+        "weekday": 1,
+        "action": "move",
+        "detail": {
+          "move_to": 16
+        }
+      },
+      {
+        "teacher_id": "T332038",
+        "class_id": 30,
+        "weekday": 1,
+        "action": "k_cycle",
+        "detail": {
+          "cycle_len": 1
+        }
+      },
+      {
+        "teacher_id": "T879668",
+        "class_id": 21,
+        "weekday": 1,
+        "action": "move",
+        "detail": {
+          "move_to": 14
+        }
+      }
+    ]
+  },
+  "persisted": {
+    "created": 518
+  },
+  "end": "2025-11-15T13:17:07.374768",
+  "global_entries_count": 518
+}

@@ -1,0 +1,3671 @@
+{
+  "start": "2025-11-15T20:43:59.711384",
+  "levels": [
+    {
+      "level_id": 8,
+      "name": "2ndB",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [
+          {
+            "class_id": 15,
+            "subject_id": 4,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 16,
+            "subject_id": 4,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            15,
+            1
+          ],
+          [
+            15,
+            2
+          ],
+          [
+            16,
+            1
+          ],
+          [
+            16,
+            2
+          ]
+        ]
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 8,
+      "name": "2ndB",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [
+          {
+            "class_id": 15,
+            "subject_id": 4,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 16,
+            "subject_id": 4,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            15,
+            1
+          ],
+          [
+            15,
+            2
+          ],
+          [
+            16,
+            1
+          ],
+          [
+            16,
+            2
+          ]
+        ]
+      },
+      "attempt": 2
+    },
+    {
+      "level_id": 8,
+      "name": "2ndB",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [
+          {
+            "class_id": 15,
+            "subject_id": 4,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 16,
+            "subject_id": 4,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            15,
+            1
+          ],
+          [
+            15,
+            2
+          ],
+          [
+            16,
+            1
+          ],
+          [
+            16,
+            2
+          ]
+        ]
+      },
+      "attempt": 3
+    },
+    {
+      "level_id": 8,
+      "name": "2ndB",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [
+          {
+            "class_id": 15,
+            "subject_id": 4,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 16,
+            "subject_id": 4,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            15,
+            1
+          ],
+          [
+            15,
+            2
+          ],
+          [
+            16,
+            1
+          ],
+          [
+            16,
+            2
+          ]
+        ]
+      },
+      "attempt": 4
+    },
+    {
+      "level_id": 15,
+      "name": "TleA",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [
+          {
+            "class_id": 29,
+            "subject_id": 4,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 29,
+            "subject_id": 9,
+            "needed": 420,
+            "natural_max": 4,
+            "capped_to": 3
+          },
+          {
+            "class_id": 30,
+            "subject_id": 4,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            29,
+            9
+          ],
+          [
+            29,
+            2
+          ]
+        ]
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 15,
+      "name": "TleA",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [
+          {
+            "class_id": 29,
+            "subject_id": 4,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 29,
+            "subject_id": 9,
+            "needed": 420,
+            "natural_max": 4,
+            "capped_to": 3
+          },
+          {
+            "class_id": 30,
+            "subject_id": 4,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            29,
+            9
+          ],
+          [
+            29,
+            2
+          ]
+        ]
+      },
+      "attempt": 2
+    },
+    {
+      "level_id": 15,
+      "name": "TleA",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [
+          {
+            "class_id": 29,
+            "subject_id": 4,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 29,
+            "subject_id": 9,
+            "needed": 420,
+            "natural_max": 4,
+            "capped_to": 3
+          },
+          {
+            "class_id": 30,
+            "subject_id": 4,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            29,
+            9
+          ],
+          [
+            29,
+            2
+          ]
+        ]
+      },
+      "attempt": 3
+    },
+    {
+      "level_id": 15,
+      "name": "TleA",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [
+          {
+            "class_id": 29,
+            "subject_id": 4,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 29,
+            "subject_id": 9,
+            "needed": 420,
+            "natural_max": 4,
+            "capped_to": 3
+          },
+          {
+            "class_id": 30,
+            "subject_id": 4,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            29,
+            9
+          ],
+          [
+            29,
+            2
+          ]
+        ]
+      },
+      "attempt": 4
+    },
+    {
+      "level_id": 12,
+      "name": "1èreB",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [
+          {
+            "class_id": 23,
+            "subject_id": 4,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 23,
+            "subject_id": 1,
+            "needed": 420,
+            "natural_max": 4,
+            "capped_to": 3
+          },
+          {
+            "class_id": 24,
+            "subject_id": 4,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            23,
+            7
+          ],
+          [
+            23,
+            1
+          ],
+          [
+            24,
+            7
+          ]
+        ]
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 12,
+      "name": "1èreB",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [
+          {
+            "class_id": 23,
+            "subject_id": 4,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 23,
+            "subject_id": 1,
+            "needed": 420,
+            "natural_max": 4,
+            "capped_to": 3
+          },
+          {
+            "class_id": 24,
+            "subject_id": 4,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            23,
+            7
+          ],
+          [
+            23,
+            1
+          ],
+          [
+            24,
+            7
+          ]
+        ]
+      },
+      "attempt": 2
+    },
+    {
+      "level_id": 12,
+      "name": "1èreB",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [
+          {
+            "class_id": 23,
+            "subject_id": 4,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 23,
+            "subject_id": 1,
+            "needed": 420,
+            "natural_max": 4,
+            "capped_to": 3
+          },
+          {
+            "class_id": 24,
+            "subject_id": 4,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            23,
+            7
+          ],
+          [
+            23,
+            1
+          ],
+          [
+            24,
+            7
+          ]
+        ]
+      },
+      "attempt": 3
+    },
+    {
+      "level_id": 12,
+      "name": "1èreB",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [
+          {
+            "class_id": 23,
+            "subject_id": 4,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 23,
+            "subject_id": 1,
+            "needed": 420,
+            "natural_max": 4,
+            "capped_to": 3
+          },
+          {
+            "class_id": 24,
+            "subject_id": 4,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            23,
+            7
+          ],
+          [
+            23,
+            1
+          ],
+          [
+            24,
+            7
+          ]
+        ]
+      },
+      "attempt": 4
+    },
+    {
+      "level_id": 7,
+      "name": "2ndA",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            13,
+            1
+          ],
+          [
+            13,
+            2
+          ],
+          [
+            14,
+            1
+          ],
+          [
+            14,
+            2
+          ]
+        ]
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 7,
+      "name": "2ndA",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            13,
+            1
+          ],
+          [
+            13,
+            2
+          ],
+          [
+            14,
+            1
+          ],
+          [
+            14,
+            2
+          ]
+        ]
+      },
+      "attempt": 2
+    },
+    {
+      "level_id": 7,
+      "name": "2ndA",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            13,
+            1
+          ],
+          [
+            13,
+            2
+          ],
+          [
+            14,
+            1
+          ],
+          [
+            14,
+            2
+          ]
+        ]
+      },
+      "attempt": 3
+    },
+    {
+      "level_id": 7,
+      "name": "2ndA",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            13,
+            1
+          ],
+          [
+            13,
+            2
+          ],
+          [
+            14,
+            1
+          ],
+          [
+            14,
+            2
+          ]
+        ]
+      },
+      "attempt": 4
+    },
+    {
+      "level_id": 16,
+      "name": "TleB",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [
+          {
+            "class_id": 31,
+            "subject_id": 4,
+            "needed": 420,
+            "natural_max": 4,
+            "capped_to": 3
+          },
+          {
+            "class_id": 31,
+            "subject_id": 8,
+            "needed": 420,
+            "natural_max": 4,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            31,
+            4
+          ],
+          [
+            31,
+            8
+          ],
+          [
+            31,
+            2
+          ],
+          [
+            32,
+            2
+          ]
+        ]
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 16,
+      "name": "TleB",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [
+          {
+            "class_id": 31,
+            "subject_id": 4,
+            "needed": 420,
+            "natural_max": 4,
+            "capped_to": 3
+          },
+          {
+            "class_id": 31,
+            "subject_id": 8,
+            "needed": 420,
+            "natural_max": 4,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            31,
+            4
+          ],
+          [
+            31,
+            8
+          ],
+          [
+            31,
+            2
+          ],
+          [
+            32,
+            2
+          ]
+        ]
+      },
+      "attempt": 2
+    },
+    {
+      "level_id": 16,
+      "name": "TleB",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [
+          {
+            "class_id": 31,
+            "subject_id": 4,
+            "needed": 420,
+            "natural_max": 4,
+            "capped_to": 3
+          },
+          {
+            "class_id": 31,
+            "subject_id": 8,
+            "needed": 420,
+            "natural_max": 4,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            31,
+            4
+          ],
+          [
+            31,
+            8
+          ],
+          [
+            31,
+            2
+          ],
+          [
+            32,
+            2
+          ]
+        ]
+      },
+      "attempt": 3
+    },
+    {
+      "level_id": 16,
+      "name": "TleB",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [
+          {
+            "class_id": 31,
+            "subject_id": 4,
+            "needed": 420,
+            "natural_max": 4,
+            "capped_to": 3
+          },
+          {
+            "class_id": 31,
+            "subject_id": 8,
+            "needed": 420,
+            "natural_max": 4,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            31,
+            4
+          ],
+          [
+            31,
+            8
+          ],
+          [
+            31,
+            2
+          ],
+          [
+            32,
+            2
+          ]
+        ]
+      },
+      "attempt": 4
+    },
+    {
+      "level_id": 11,
+      "name": "1èreAA",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [
+          {
+            "class_id": 21,
+            "subject_id": 9,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "status": 3,
+        "est_vars_after_pruning": 224
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 11,
+      "name": "1èreAA",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [
+          {
+            "class_id": 21,
+            "subject_id": 9,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "status": 3,
+        "est_vars_after_pruning": 224
+      },
+      "attempt": 2
+    },
+    {
+      "level_id": 11,
+      "name": "1èreAA",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [
+          {
+            "class_id": 21,
+            "subject_id": 9,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "status": 3,
+        "est_vars_after_pruning": 224
+      },
+      "attempt": 3
+    },
+    {
+      "level_id": 11,
+      "name": "1èreAA",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [
+          {
+            "class_id": 21,
+            "subject_id": 9,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "status": 3,
+        "est_vars_after_pruning": 224
+      },
+      "attempt": 4
+    },
+    {
+      "level_id": 18,
+      "name": "TleD",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [
+          {
+            "class_id": 35,
+            "subject_id": 3,
+            "needed": 420,
+            "natural_max": 4,
+            "capped_to": 3
+          },
+          {
+            "class_id": 35,
+            "subject_id": 2,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 36,
+            "subject_id": 3,
+            "needed": 420,
+            "natural_max": 4,
+            "capped_to": 3
+          },
+          {
+            "class_id": 36,
+            "subject_id": 2,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            35,
+            5
+          ],
+          [
+            35,
+            4
+          ],
+          [
+            35,
+            9
+          ],
+          [
+            35,
+            3
+          ],
+          [
+            35,
+            8
+          ],
+          [
+            36,
+            4
+          ],
+          [
+            36,
+            9
+          ],
+          [
+            36,
+            3
+          ],
+          [
+            36,
+            8
+          ]
+        ]
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 18,
+      "name": "TleD",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [
+          {
+            "class_id": 35,
+            "subject_id": 3,
+            "needed": 420,
+            "natural_max": 4,
+            "capped_to": 3
+          },
+          {
+            "class_id": 35,
+            "subject_id": 2,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 36,
+            "subject_id": 3,
+            "needed": 420,
+            "natural_max": 4,
+            "capped_to": 3
+          },
+          {
+            "class_id": 36,
+            "subject_id": 2,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            35,
+            5
+          ],
+          [
+            35,
+            4
+          ],
+          [
+            35,
+            9
+          ],
+          [
+            35,
+            3
+          ],
+          [
+            35,
+            8
+          ],
+          [
+            36,
+            4
+          ],
+          [
+            36,
+            9
+          ],
+          [
+            36,
+            3
+          ],
+          [
+            36,
+            8
+          ]
+        ]
+      },
+      "attempt": 2
+    },
+    {
+      "level_id": 18,
+      "name": "TleD",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [
+          {
+            "class_id": 35,
+            "subject_id": 3,
+            "needed": 420,
+            "natural_max": 4,
+            "capped_to": 3
+          },
+          {
+            "class_id": 35,
+            "subject_id": 2,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 36,
+            "subject_id": 3,
+            "needed": 420,
+            "natural_max": 4,
+            "capped_to": 3
+          },
+          {
+            "class_id": 36,
+            "subject_id": 2,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            35,
+            5
+          ],
+          [
+            35,
+            4
+          ],
+          [
+            35,
+            9
+          ],
+          [
+            35,
+            3
+          ],
+          [
+            35,
+            8
+          ],
+          [
+            36,
+            4
+          ],
+          [
+            36,
+            9
+          ],
+          [
+            36,
+            3
+          ],
+          [
+            36,
+            8
+          ]
+        ]
+      },
+      "attempt": 3
+    },
+    {
+      "level_id": 18,
+      "name": "TleD",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [
+          {
+            "class_id": 35,
+            "subject_id": 3,
+            "needed": 420,
+            "natural_max": 4,
+            "capped_to": 3
+          },
+          {
+            "class_id": 35,
+            "subject_id": 2,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 36,
+            "subject_id": 3,
+            "needed": 420,
+            "natural_max": 4,
+            "capped_to": 3
+          },
+          {
+            "class_id": 36,
+            "subject_id": 2,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            35,
+            5
+          ],
+          [
+            35,
+            4
+          ],
+          [
+            35,
+            9
+          ],
+          [
+            35,
+            3
+          ],
+          [
+            35,
+            8
+          ],
+          [
+            36,
+            4
+          ],
+          [
+            36,
+            9
+          ],
+          [
+            36,
+            3
+          ],
+          [
+            36,
+            8
+          ]
+        ]
+      },
+      "attempt": 4
+    },
+    {
+      "level_id": 17,
+      "name": "TleC",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [
+          {
+            "class_id": 33,
+            "subject_id": 1,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 33,
+            "subject_id": 3,
+            "needed": 420,
+            "natural_max": 4,
+            "capped_to": 3
+          },
+          {
+            "class_id": 34,
+            "subject_id": 1,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 34,
+            "subject_id": 3,
+            "needed": 420,
+            "natural_max": 4,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            33,
+            4
+          ],
+          [
+            33,
+            9
+          ],
+          [
+            33,
+            3
+          ],
+          [
+            33,
+            8
+          ],
+          [
+            34,
+            4
+          ],
+          [
+            34,
+            9
+          ],
+          [
+            34,
+            3
+          ],
+          [
+            34,
+            8
+          ]
+        ]
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 17,
+      "name": "TleC",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [
+          {
+            "class_id": 33,
+            "subject_id": 1,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 33,
+            "subject_id": 3,
+            "needed": 420,
+            "natural_max": 4,
+            "capped_to": 3
+          },
+          {
+            "class_id": 34,
+            "subject_id": 1,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 34,
+            "subject_id": 3,
+            "needed": 420,
+            "natural_max": 4,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            33,
+            4
+          ],
+          [
+            33,
+            9
+          ],
+          [
+            33,
+            3
+          ],
+          [
+            33,
+            8
+          ],
+          [
+            34,
+            4
+          ],
+          [
+            34,
+            9
+          ],
+          [
+            34,
+            3
+          ],
+          [
+            34,
+            8
+          ]
+        ]
+      },
+      "attempt": 2
+    },
+    {
+      "level_id": 17,
+      "name": "TleC",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [
+          {
+            "class_id": 33,
+            "subject_id": 1,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 33,
+            "subject_id": 3,
+            "needed": 420,
+            "natural_max": 4,
+            "capped_to": 3
+          },
+          {
+            "class_id": 34,
+            "subject_id": 1,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 34,
+            "subject_id": 3,
+            "needed": 420,
+            "natural_max": 4,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            33,
+            4
+          ],
+          [
+            33,
+            9
+          ],
+          [
+            33,
+            3
+          ],
+          [
+            33,
+            8
+          ],
+          [
+            34,
+            4
+          ],
+          [
+            34,
+            9
+          ],
+          [
+            34,
+            3
+          ],
+          [
+            34,
+            8
+          ]
+        ]
+      },
+      "attempt": 3
+    },
+    {
+      "level_id": 17,
+      "name": "TleC",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [
+          {
+            "class_id": 33,
+            "subject_id": 1,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 33,
+            "subject_id": 3,
+            "needed": 420,
+            "natural_max": 4,
+            "capped_to": 3
+          },
+          {
+            "class_id": 34,
+            "subject_id": 1,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 34,
+            "subject_id": 3,
+            "needed": 420,
+            "natural_max": 4,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            33,
+            4
+          ],
+          [
+            33,
+            9
+          ],
+          [
+            33,
+            3
+          ],
+          [
+            33,
+            8
+          ],
+          [
+            34,
+            4
+          ],
+          [
+            34,
+            9
+          ],
+          [
+            34,
+            3
+          ],
+          [
+            34,
+            8
+          ]
+        ]
+      },
+      "attempt": 4
+    },
+    {
+      "level_id": 13,
+      "name": "1èreC",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [
+          {
+            "class": "1èreC2 (1èreC)",
+            "class_id": 26,
+            "subject": "EcoFam",
+            "subject_id": 11
+          }
+        ],
+        "capped_sessions": [
+          {
+            "class_id": 25,
+            "subject_id": 3,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 26,
+            "subject_id": 1,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 26,
+            "subject_id": 3,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            25,
+            9
+          ],
+          [
+            25,
+            2
+          ],
+          [
+            26,
+            9
+          ],
+          [
+            26,
+            2
+          ]
+        ]
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 13,
+      "name": "1èreC",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [
+          {
+            "class": "1èreC2 (1èreC)",
+            "class_id": 26,
+            "subject": "EcoFam",
+            "subject_id": 11
+          }
+        ],
+        "capped_sessions": [
+          {
+            "class_id": 25,
+            "subject_id": 3,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 26,
+            "subject_id": 1,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 26,
+            "subject_id": 3,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            25,
+            9
+          ],
+          [
+            25,
+            2
+          ],
+          [
+            26,
+            9
+          ],
+          [
+            26,
+            2
+          ]
+        ]
+      },
+      "attempt": 2
+    },
+    {
+      "level_id": 13,
+      "name": "1èreC",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [
+          {
+            "class": "1èreC2 (1èreC)",
+            "class_id": 26,
+            "subject": "EcoFam",
+            "subject_id": 11
+          }
+        ],
+        "capped_sessions": [
+          {
+            "class_id": 25,
+            "subject_id": 3,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 26,
+            "subject_id": 1,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 26,
+            "subject_id": 3,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            25,
+            9
+          ],
+          [
+            25,
+            2
+          ],
+          [
+            26,
+            9
+          ],
+          [
+            26,
+            2
+          ]
+        ]
+      },
+      "attempt": 3
+    },
+    {
+      "level_id": 13,
+      "name": "1èreC",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [
+          {
+            "class": "1èreC2 (1èreC)",
+            "class_id": 26,
+            "subject": "EcoFam",
+            "subject_id": 11
+          }
+        ],
+        "capped_sessions": [
+          {
+            "class_id": 25,
+            "subject_id": 3,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 26,
+            "subject_id": 1,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 26,
+            "subject_id": 3,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            25,
+            9
+          ],
+          [
+            25,
+            2
+          ],
+          [
+            26,
+            9
+          ],
+          [
+            26,
+            2
+          ]
+        ]
+      },
+      "attempt": 4
+    },
+    {
+      "level_id": 14,
+      "name": "1èreD",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [
+          {
+            "class_id": 27,
+            "subject_id": 2,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 28,
+            "subject_id": 2,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            27,
+            9
+          ],
+          [
+            28,
+            9
+          ]
+        ]
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 14,
+      "name": "1èreD",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [
+          {
+            "class_id": 27,
+            "subject_id": 2,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 28,
+            "subject_id": 2,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            27,
+            9
+          ],
+          [
+            28,
+            9
+          ]
+        ]
+      },
+      "attempt": 2
+    },
+    {
+      "level_id": 14,
+      "name": "1èreD",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [
+          {
+            "class_id": 27,
+            "subject_id": 2,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 28,
+            "subject_id": 2,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            27,
+            9
+          ],
+          [
+            28,
+            9
+          ]
+        ]
+      },
+      "attempt": 3
+    },
+    {
+      "level_id": 14,
+      "name": "1èreD",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [
+          {
+            "class_id": 27,
+            "subject_id": 2,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 28,
+            "subject_id": 2,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            27,
+            9
+          ],
+          [
+            28,
+            9
+          ]
+        ]
+      },
+      "attempt": 4
+    },
+    {
+      "level_id": 10,
+      "name": "2ndD",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            19,
+            4
+          ],
+          [
+            19,
+            9
+          ],
+          [
+            19,
+            8
+          ],
+          [
+            20,
+            4
+          ],
+          [
+            20,
+            9
+          ],
+          [
+            20,
+            8
+          ]
+        ]
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 10,
+      "name": "2ndD",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            19,
+            4
+          ],
+          [
+            19,
+            9
+          ],
+          [
+            19,
+            8
+          ],
+          [
+            20,
+            4
+          ],
+          [
+            20,
+            9
+          ],
+          [
+            20,
+            8
+          ]
+        ]
+      },
+      "attempt": 2
+    },
+    {
+      "level_id": 10,
+      "name": "2ndD",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            19,
+            4
+          ],
+          [
+            19,
+            9
+          ],
+          [
+            19,
+            8
+          ],
+          [
+            20,
+            4
+          ],
+          [
+            20,
+            9
+          ],
+          [
+            20,
+            8
+          ]
+        ]
+      },
+      "attempt": 3
+    },
+    {
+      "level_id": 10,
+      "name": "2ndD",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            19,
+            4
+          ],
+          [
+            19,
+            9
+          ],
+          [
+            19,
+            8
+          ],
+          [
+            20,
+            4
+          ],
+          [
+            20,
+            9
+          ],
+          [
+            20,
+            8
+          ]
+        ]
+      },
+      "attempt": 4
+    },
+    {
+      "level_id": 9,
+      "name": "2ndC",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [
+          {
+            "class": "2ndC1 (2ndC)",
+            "class_id": 17,
+            "subject": "EPS",
+            "subject_id": 10
+          }
+        ],
+        "capped_sessions": [
+          {
+            "class_id": 17,
+            "subject_id": 1,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 18,
+            "subject_id": 1,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            17,
+            4
+          ],
+          [
+            17,
+            8
+          ],
+          [
+            17,
+            2
+          ],
+          [
+            18,
+            8
+          ],
+          [
+            18,
+            2
+          ]
+        ]
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 9,
+      "name": "2ndC",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [
+          {
+            "class": "2ndC1 (2ndC)",
+            "class_id": 17,
+            "subject": "EPS",
+            "subject_id": 10
+          }
+        ],
+        "capped_sessions": [
+          {
+            "class_id": 17,
+            "subject_id": 1,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 18,
+            "subject_id": 1,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            17,
+            4
+          ],
+          [
+            17,
+            8
+          ],
+          [
+            17,
+            2
+          ],
+          [
+            18,
+            8
+          ],
+          [
+            18,
+            2
+          ]
+        ]
+      },
+      "attempt": 2
+    },
+    {
+      "level_id": 9,
+      "name": "2ndC",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [
+          {
+            "class": "2ndC1 (2ndC)",
+            "class_id": 17,
+            "subject": "EPS",
+            "subject_id": 10
+          }
+        ],
+        "capped_sessions": [
+          {
+            "class_id": 17,
+            "subject_id": 1,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 18,
+            "subject_id": 1,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            17,
+            4
+          ],
+          [
+            17,
+            8
+          ],
+          [
+            17,
+            2
+          ],
+          [
+            18,
+            8
+          ],
+          [
+            18,
+            2
+          ]
+        ]
+      },
+      "attempt": 3
+    },
+    {
+      "level_id": 9,
+      "name": "2ndC",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [
+          {
+            "class": "2ndC1 (2ndC)",
+            "class_id": 17,
+            "subject": "EPS",
+            "subject_id": 10
+          }
+        ],
+        "capped_sessions": [
+          {
+            "class_id": 17,
+            "subject_id": 1,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          },
+          {
+            "class_id": 18,
+            "subject_id": 1,
+            "needed": 540,
+            "natural_max": 5,
+            "capped_to": 3
+          }
+        ],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            17,
+            4
+          ],
+          [
+            17,
+            8
+          ],
+          [
+            17,
+            2
+          ],
+          [
+            18,
+            8
+          ],
+          [
+            18,
+            2
+          ]
+        ]
+      },
+      "attempt": 4
+    },
+    {
+      "level_id": 5,
+      "name": "3eMC",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            10,
+            5
+          ],
+          [
+            10,
+            4
+          ],
+          [
+            10,
+            9
+          ],
+          [
+            10,
+            3
+          ],
+          [
+            10,
+            2
+          ]
+        ]
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 5,
+      "name": "3eMC",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            10,
+            5
+          ],
+          [
+            10,
+            4
+          ],
+          [
+            10,
+            9
+          ],
+          [
+            10,
+            3
+          ],
+          [
+            10,
+            2
+          ]
+        ]
+      },
+      "attempt": 2
+    },
+    {
+      "level_id": 5,
+      "name": "3eMC",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            10,
+            5
+          ],
+          [
+            10,
+            4
+          ],
+          [
+            10,
+            9
+          ],
+          [
+            10,
+            3
+          ],
+          [
+            10,
+            2
+          ]
+        ]
+      },
+      "attempt": 3
+    },
+    {
+      "level_id": 5,
+      "name": "3eMC",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            10,
+            5
+          ],
+          [
+            10,
+            4
+          ],
+          [
+            10,
+            9
+          ],
+          [
+            10,
+            3
+          ],
+          [
+            10,
+            2
+          ]
+        ]
+      },
+      "attempt": 4
+    },
+    {
+      "level_id": 6,
+      "name": "3eML",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            11,
+            5
+          ],
+          [
+            11,
+            4
+          ],
+          [
+            11,
+            9
+          ],
+          [
+            11,
+            1
+          ],
+          [
+            11,
+            2
+          ],
+          [
+            12,
+            5
+          ],
+          [
+            12,
+            4
+          ],
+          [
+            12,
+            9
+          ],
+          [
+            12,
+            1
+          ],
+          [
+            12,
+            2
+          ]
+        ]
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 6,
+      "name": "3eML",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            11,
+            5
+          ],
+          [
+            11,
+            4
+          ],
+          [
+            11,
+            9
+          ],
+          [
+            11,
+            1
+          ],
+          [
+            11,
+            2
+          ],
+          [
+            12,
+            5
+          ],
+          [
+            12,
+            4
+          ],
+          [
+            12,
+            9
+          ],
+          [
+            12,
+            1
+          ],
+          [
+            12,
+            2
+          ]
+        ]
+      },
+      "attempt": 2
+    },
+    {
+      "level_id": 6,
+      "name": "3eML",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            11,
+            5
+          ],
+          [
+            11,
+            4
+          ],
+          [
+            11,
+            9
+          ],
+          [
+            11,
+            1
+          ],
+          [
+            11,
+            2
+          ],
+          [
+            12,
+            5
+          ],
+          [
+            12,
+            4
+          ],
+          [
+            12,
+            9
+          ],
+          [
+            12,
+            1
+          ],
+          [
+            12,
+            2
+          ]
+        ]
+      },
+      "attempt": 3
+    },
+    {
+      "level_id": 6,
+      "name": "3eML",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            11,
+            5
+          ],
+          [
+            11,
+            4
+          ],
+          [
+            11,
+            9
+          ],
+          [
+            11,
+            1
+          ],
+          [
+            11,
+            2
+          ],
+          [
+            12,
+            5
+          ],
+          [
+            12,
+            4
+          ],
+          [
+            12,
+            9
+          ],
+          [
+            12,
+            1
+          ],
+          [
+            12,
+            2
+          ]
+        ]
+      },
+      "attempt": 4
+    },
+    {
+      "level_id": 3,
+      "name": "4eMC",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            3,
+            5
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            3,
+            9
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            9
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            2
+          ]
+        ]
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 3,
+      "name": "4eMC",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            3,
+            5
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            3,
+            9
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            9
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            2
+          ]
+        ]
+      },
+      "attempt": 2
+    },
+    {
+      "level_id": 3,
+      "name": "4eMC",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            3,
+            5
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            3,
+            9
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            9
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            2
+          ]
+        ]
+      },
+      "attempt": 3
+    },
+    {
+      "level_id": 3,
+      "name": "4eMC",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            3,
+            5
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            3,
+            9
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            9
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            2
+          ]
+        ]
+      },
+      "attempt": 4
+    },
+    {
+      "level_id": 4,
+      "name": "4eML",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            7,
+            9
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            7,
+            2
+          ],
+          [
+            8,
+            5
+          ],
+          [
+            8,
+            4
+          ],
+          [
+            8,
+            9
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            8,
+            2
+          ]
+        ]
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 4,
+      "name": "4eML",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            7,
+            9
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            7,
+            2
+          ],
+          [
+            8,
+            5
+          ],
+          [
+            8,
+            4
+          ],
+          [
+            8,
+            9
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            8,
+            2
+          ]
+        ]
+      },
+      "attempt": 2
+    },
+    {
+      "level_id": 4,
+      "name": "4eML",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            7,
+            9
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            7,
+            2
+          ],
+          [
+            8,
+            5
+          ],
+          [
+            8,
+            4
+          ],
+          [
+            8,
+            9
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            8,
+            2
+          ]
+        ]
+      },
+      "attempt": 3
+    },
+    {
+      "level_id": 4,
+      "name": "4eML",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            7,
+            9
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            7,
+            2
+          ],
+          [
+            8,
+            5
+          ],
+          [
+            8,
+            4
+          ],
+          [
+            8,
+            9
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            8,
+            2
+          ]
+        ]
+      },
+      "attempt": 4
+    },
+    {
+      "level_id": 2,
+      "name": "5e",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            5,
+            5
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            5,
+            9
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            5,
+            3
+          ],
+          [
+            5,
+            2
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            6,
+            3
+          ],
+          [
+            6,
+            2
+          ]
+        ]
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 2,
+      "name": "5e",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            5,
+            5
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            5,
+            9
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            5,
+            3
+          ],
+          [
+            5,
+            2
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            6,
+            3
+          ],
+          [
+            6,
+            2
+          ]
+        ]
+      },
+      "attempt": 2
+    },
+    {
+      "level_id": 2,
+      "name": "5e",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            5,
+            5
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            5,
+            9
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            5,
+            3
+          ],
+          [
+            5,
+            2
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            6,
+            3
+          ],
+          [
+            6,
+            2
+          ]
+        ]
+      },
+      "attempt": 3
+    },
+    {
+      "level_id": 2,
+      "name": "5e",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            5,
+            5
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            5,
+            9
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            5,
+            3
+          ],
+          [
+            5,
+            2
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            6,
+            3
+          ],
+          [
+            6,
+            2
+          ]
+        ]
+      },
+      "attempt": 4
+    },
+    {
+      "level_id": 1,
+      "name": "6e",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            1,
+            5
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            1,
+            9
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            9
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            2
+          ]
+        ]
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 1,
+      "name": "6e",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            1,
+            5
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            1,
+            9
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            9
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            2
+          ]
+        ]
+      },
+      "attempt": 2
+    },
+    {
+      "level_id": 1,
+      "name": "6e",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            1,
+            5
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            1,
+            9
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            9
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            2
+          ]
+        ]
+      },
+      "attempt": 3
+    },
+    {
+      "level_id": 1,
+      "name": "6e",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "capped_sessions": [],
+        "pruned_slots_count": 14,
+        "no_feasible": [
+          [
+            1,
+            5
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            1,
+            9
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            9
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            2
+          ]
+        ]
+      },
+      "attempt": 4
+    }
+  ],
+  "merged": {
+    "conflicts": [],
+    "resolved": [],
+    "shortfalls": []
+  },
+  "persisted": {
+    "created": 0
+  },
+  "end": "2025-11-15T20:44:03.229012",
+  "global_entries_count": 0
+}

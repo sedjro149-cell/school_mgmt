@@ -1,0 +1,660 @@
+{
+  "start": "2025-11-16T10:03:24.341101",
+  "levels": [
+    {
+      "level_id": 8,
+      "name": "2ndB",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [
+          {
+            "class": "2ndB1 (2ndB)",
+            "class_id": 15,
+            "subject": "Allemand",
+            "subject_id": 7
+          },
+          {
+            "class": "2ndB1 (2ndB)",
+            "class_id": 15,
+            "subject": "EcoFam",
+            "subject_id": 11
+          }
+        ],
+        "status": 4,
+        "est_vars_after_pruning": 496,
+        "violations_c1c3_consecutive_days": 1,
+        "penalty_consecutive_weight": 4040
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 11,
+      "name": "1èreAA",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 494,
+        "violations_c1c3_consecutive_days": 2,
+        "penalty_consecutive_weight": 4240
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 18,
+      "name": "TleD",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 492,
+        "violations_c1c3_consecutive_days": 0,
+        "penalty_consecutive_weight": 4120
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 17,
+      "name": "TleC",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 476,
+        "violations_c1c3_consecutive_days": 0,
+        "penalty_consecutive_weight": 4040
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 14,
+      "name": "1èreD",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 467,
+        "violations_c1c3_consecutive_days": 0,
+        "penalty_consecutive_weight": 3960
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 16,
+      "name": "TleB",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [
+          {
+            "class": "TleB1 (TleB)",
+            "class_id": 31,
+            "subject": "EcoFam",
+            "subject_id": 11
+          },
+          {
+            "class": "TleB2 (TleB)",
+            "class_id": 32,
+            "subject": "EcoFam",
+            "subject_id": 11
+          }
+        ],
+        "status": 4,
+        "est_vars_after_pruning": 479,
+        "violations_c1c3_consecutive_days": 0,
+        "penalty_consecutive_weight": 3640
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 13,
+      "name": "1èreC",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [
+          {
+            "class": "1èreC2 (1èreC)",
+            "class_id": 26,
+            "subject": "EcoFam",
+            "subject_id": 11
+          }
+        ],
+        "status": 4,
+        "est_vars_after_pruning": 465,
+        "violations_c1c3_consecutive_days": 0,
+        "penalty_consecutive_weight": 3800
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 6,
+      "name": "3eML",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [
+          {
+            "class": "3eML1 (3eML)",
+            "class_id": 11,
+            "subject": "PCT",
+            "subject_id": 3
+          },
+          {
+            "class": "3eML2 (3eML)",
+            "class_id": 12,
+            "subject": "Allemand",
+            "subject_id": 7
+          },
+          {
+            "class": "3eML2 (3eML)",
+            "class_id": 12,
+            "subject": "PCT",
+            "subject_id": 3
+          }
+        ],
+        "no_feasible": [
+          {
+            "c": 12,
+            "s": 6,
+            "reason": "Quota non-représentable par 120/180 en <= 3 sessions"
+          }
+        ]
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 6,
+      "name": "3eML",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [
+          {
+            "class": "3eML1 (3eML)",
+            "class_id": 11,
+            "subject": "PCT",
+            "subject_id": 3
+          },
+          {
+            "class": "3eML2 (3eML)",
+            "class_id": 12,
+            "subject": "Allemand",
+            "subject_id": 7
+          },
+          {
+            "class": "3eML2 (3eML)",
+            "class_id": 12,
+            "subject": "PCT",
+            "subject_id": 3
+          }
+        ],
+        "no_feasible": [
+          {
+            "c": 12,
+            "s": 6,
+            "reason": "Quota non-représentable par 120/180 en <= 3 sessions"
+          }
+        ]
+      },
+      "attempt": 2
+    },
+    {
+      "level_id": 6,
+      "name": "3eML",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [
+          {
+            "class": "3eML1 (3eML)",
+            "class_id": 11,
+            "subject": "PCT",
+            "subject_id": 3
+          },
+          {
+            "class": "3eML2 (3eML)",
+            "class_id": 12,
+            "subject": "Allemand",
+            "subject_id": 7
+          },
+          {
+            "class": "3eML2 (3eML)",
+            "class_id": 12,
+            "subject": "PCT",
+            "subject_id": 3
+          }
+        ],
+        "no_feasible": [
+          {
+            "c": 12,
+            "s": 6,
+            "reason": "Quota non-représentable par 120/180 en <= 3 sessions"
+          }
+        ]
+      },
+      "attempt": 3
+    },
+    {
+      "level_id": 6,
+      "name": "3eML",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [
+          {
+            "class": "3eML1 (3eML)",
+            "class_id": 11,
+            "subject": "PCT",
+            "subject_id": 3
+          },
+          {
+            "class": "3eML2 (3eML)",
+            "class_id": 12,
+            "subject": "Allemand",
+            "subject_id": 7
+          },
+          {
+            "class": "3eML2 (3eML)",
+            "class_id": 12,
+            "subject": "PCT",
+            "subject_id": 3
+          }
+        ],
+        "no_feasible": [
+          {
+            "c": 12,
+            "s": 6,
+            "reason": "Quota non-représentable par 120/180 en <= 3 sessions"
+          }
+        ]
+      },
+      "attempt": 4
+    },
+    {
+      "level_id": 12,
+      "name": "1èreB",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [
+          {
+            "class": "1èreB1 (1èreB)",
+            "class_id": 23,
+            "subject": "EcoFam",
+            "subject_id": 11
+          },
+          {
+            "class": "1èreB2 (1èreB)",
+            "class_id": 24,
+            "subject": "EcoFam",
+            "subject_id": 11
+          }
+        ],
+        "status": 4,
+        "est_vars_after_pruning": 457,
+        "violations_c1c3_consecutive_days": 0,
+        "penalty_consecutive_weight": 3560
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 10,
+      "name": "2ndD",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 435,
+        "violations_c1c3_consecutive_days": 0,
+        "penalty_consecutive_weight": 3880
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 5,
+      "name": "3eMC",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [
+          {
+            "class": "3eMC1 (3eMC)",
+            "class_id": 9,
+            "subject": "Espagnol",
+            "subject_id": 6
+          },
+          {
+            "class": "3eMC2 (3eMC)",
+            "class_id": 10,
+            "subject": "Espagnol",
+            "subject_id": 6
+          }
+        ],
+        "status": 4,
+        "est_vars_after_pruning": 379,
+        "violations_c1c3_consecutive_days": 0,
+        "penalty_consecutive_weight": 3560
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 4,
+      "name": "4eML",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [
+          {
+            "class": "4eML1 (4eML)",
+            "class_id": 7,
+            "subject": "PCT",
+            "subject_id": 3
+          },
+          {
+            "class": "4eML2 (4eML)",
+            "class_id": 8,
+            "subject": "Allemand",
+            "subject_id": 7
+          },
+          {
+            "class": "4eML2 (4eML)",
+            "class_id": 8,
+            "subject": "PCT",
+            "subject_id": 3
+          }
+        ],
+        "status": 4,
+        "est_vars_after_pruning": 370,
+        "violations_c1c3_consecutive_days": 0,
+        "penalty_consecutive_weight": 3440
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 15,
+      "name": "TleA",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 444,
+        "violations_c1c3_consecutive_days": 0,
+        "penalty_consecutive_weight": 3840
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 9,
+      "name": "2ndC",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [
+          {
+            "class": "2ndC1 (2ndC)",
+            "class_id": 17,
+            "subject": "EPS",
+            "subject_id": 10
+          }
+        ],
+        "status": 4,
+        "est_vars_after_pruning": 402,
+        "violations_c1c3_consecutive_days": 0,
+        "penalty_consecutive_weight": 3600
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 3,
+      "name": "4eMC",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [
+          {
+            "class": "4eMC1 (4eMC)",
+            "class_id": 3,
+            "subject": "Espagnol",
+            "subject_id": 6
+          },
+          {
+            "class": "4eMC2 (4eMC)",
+            "class_id": 4,
+            "subject": "Espagnol",
+            "subject_id": 6
+          }
+        ],
+        "status": 4,
+        "est_vars_after_pruning": 376,
+        "violations_c1c3_consecutive_days": 0,
+        "penalty_consecutive_weight": 3360
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 2,
+      "name": "5e",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 363,
+        "violations_c1c3_consecutive_days": 0,
+        "penalty_consecutive_weight": 3360
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 1,
+      "name": "6e",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [
+          {
+            "class": "6eB (6e)",
+            "class_id": 2,
+            "subject": "Maths",
+            "subject_id": 1
+          }
+        ],
+        "status": 4,
+        "est_vars_after_pruning": 336,
+        "violations_c1c3_consecutive_days": 0,
+        "penalty_consecutive_weight": 3160
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 7,
+      "name": "2ndA",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 422,
+        "violations_c1c3_consecutive_days": 0,
+        "penalty_consecutive_weight": 3320
+      },
+      "attempt": 1
+    }
+  ],
+  "merged": {
+    "conflicts": [],
+    "resolved": [],
+    "shortfalls": [
+      {
+        "level": 8,
+        "shortfalls": [
+          {
+            "class_id": 15,
+            "subject_id": 7,
+            "needed": 240,
+            "got": 0,
+            "missing": 240
+          },
+          {
+            "class_id": 15,
+            "subject_id": 11,
+            "needed": 240,
+            "got": 0,
+            "missing": 240
+          }
+        ]
+      },
+      {
+        "level": 16,
+        "shortfalls": [
+          {
+            "class_id": 31,
+            "subject_id": 11,
+            "needed": 240,
+            "got": 0,
+            "missing": 240
+          },
+          {
+            "class_id": 32,
+            "subject_id": 11,
+            "needed": 240,
+            "got": 0,
+            "missing": 240
+          }
+        ]
+      },
+      {
+        "level": 13,
+        "shortfalls": [
+          {
+            "class_id": 26,
+            "subject_id": 11,
+            "needed": 180,
+            "got": 0,
+            "missing": 180
+          }
+        ]
+      },
+      {
+        "level": 12,
+        "shortfalls": [
+          {
+            "class_id": 23,
+            "subject_id": 11,
+            "needed": 240,
+            "got": 0,
+            "missing": 240
+          },
+          {
+            "class_id": 24,
+            "subject_id": 11,
+            "needed": 240,
+            "got": 0,
+            "missing": 240
+          }
+        ]
+      },
+      {
+        "level": 5,
+        "shortfalls": [
+          {
+            "class_id": 9,
+            "subject_id": 6,
+            "needed": 240,
+            "got": 0,
+            "missing": 240
+          },
+          {
+            "class_id": 10,
+            "subject_id": 6,
+            "needed": 240,
+            "got": 0,
+            "missing": 240
+          }
+        ]
+      },
+      {
+        "level": 4,
+        "shortfalls": [
+          {
+            "class_id": 7,
+            "subject_id": 3,
+            "needed": 180,
+            "got": 0,
+            "missing": 180
+          },
+          {
+            "class_id": 8,
+            "subject_id": 7,
+            "needed": 240,
+            "got": 0,
+            "missing": 240
+          },
+          {
+            "class_id": 8,
+            "subject_id": 3,
+            "needed": 240,
+            "got": 0,
+            "missing": 240
+          }
+        ]
+      },
+      {
+        "level": 9,
+        "shortfalls": [
+          {
+            "class_id": 17,
+            "subject_id": 10,
+            "needed": 180,
+            "got": 0,
+            "missing": 180
+          }
+        ]
+      },
+      {
+        "level": 3,
+        "shortfalls": [
+          {
+            "class_id": 3,
+            "subject_id": 6,
+            "needed": 180,
+            "got": 0,
+            "missing": 180
+          },
+          {
+            "class_id": 4,
+            "subject_id": 6,
+            "needed": 120,
+            "got": 0,
+            "missing": 120
+          }
+        ]
+      },
+      {
+        "level": 1,
+        "shortfalls": [
+          {
+            "class_id": 2,
+            "subject_id": 1,
+            "needed": 300,
+            "got": 0,
+            "missing": 300
+          }
+        ]
+      }
+    ]
+  },
+  "persisted": {
+    "created": 465
+  },
+  "end": "2025-11-16T10:03:29.344744",
+  "global_entries_count": 465
+}

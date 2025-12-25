@@ -1,4 +1,4 @@
-# finance/filters.py
+# fees/filters.py
 from django.db.models import Q
 import django_filters
 from django_filters import rest_framework as filters

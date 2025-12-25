@@ -1,4 +1,3 @@
-# finance/serializers.py
 from rest_framework import serializers
 from django.utils import timezone
 
@@ -17,17 +16,13 @@ class FeeTypeAmountSerializer(serializers.ModelSerializer):
 
 class FeeTypeSerializer(serializers.ModelSerializer):
     amounts = FeeTypeAmountSerializer(many=True, read_only=True)
+    due_date = serializers.DateField(required=False, allow_null=True)
 
     class Meta:
         model = FeeType
-        fields = ["id", "name", "description", "is_active", "created_at", "amounts"]
+        fields = ["id", "name", "description", "is_active", "created_at", "due_date", "amounts"]
+        read_only_fields = ["id", "created_at"]
 
-
-from rest_framework import serializers
-from .models import Payment, Fee
-from django.contrib.auth import get_user_model
-
-User = get_user_model()
 
 class UserPublicSmallSerializer(serializers.Serializer):
     id = serializers.IntegerField()
@@ -70,19 +65,25 @@ class StudentMiniSerializer(serializers.Serializer):
 
 
 class FeeSerializer(serializers.ModelSerializer):
-    # IMPORTANT: remove source="student" because the field name is already 'student'
     student = StudentMiniSerializer(read_only=True)
     fee_type_name = serializers.CharField(source="fee_type.name", read_only=True)
+    due_date = serializers.DateField(required=False, allow_null=True)
+
+    # nouveaux champs exposés dans l'API
+    total_paid = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    total_remaining = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
 
     class Meta:
         model = Fee
-        fields = ["id", "fee_type", "fee_type_name", "student", "amount", "paid", "payment_date", "created_at"]
-        read_only_fields = ["id", "fee_type_name", "student", "paid", "payment_date", "created_at"]
-
+        fields = [
+            "id", "fee_type", "fee_type_name", "student",
+            "amount", "due_date", "paid", "payment_date", "created_at",
+            "total_paid", "total_remaining"
+        ]
+        read_only_fields = ["id", "fee_type_name", "student", "paid", "payment_date", "created_at", "total_paid", "total_remaining"]
 
 class PaymentSerializer(serializers.ModelSerializer):
     fee_detail = FeeSerializer(source="fee", read_only=True)
-    # student comes from fee.student (field name != source, so source is OK)
     student = StudentMiniSerializer(source="fee.student", read_only=True)
     validated_by = serializers.SerializerMethodField()
 
@@ -117,6 +118,7 @@ class PaymentSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         payment = super().create(validated_data)
+        # on garde la logique actuelle : tenter validate automatique
         try:
             payment.validate(user=None)
         except Exception:

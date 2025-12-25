@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 
-from core.models import Student, Parent
+from core.models import Student, Parent, Teacher
 from academics.models import (
     Level,
     SchoolClass,
@@ -48,7 +48,20 @@ class LevelSerializer(serializers.ModelSerializer):
         model = Level
         fields = ["id", "name"]
 
+# Assure-toi d'importer ton modèle Teacher et User si ce n'est pas déjà fait
+# from .models import Teacher 
 
+class SimpleTeacherSerializer(serializers.ModelSerializer):
+    first_name = serializers.CharField(source='user.first_name', read_only=True)
+    last_name = serializers.CharField(source='user.last_name', read_only=True)
+    email = serializers.CharField(source='user.email', read_only=True)
+    # Si tu as un champ 'subjects' ou 'specialty' dans le modèle Teacher, ajoute-le ici
+    # subjects = ... 
+
+    class Meta:
+        # Remplace 'Teacher' par le nom exact de ton modèle Enseignant
+        model = Teacher 
+        fields = ['id', 'first_name', 'last_name', 'email'] # Ajoute 'subjects' ici si dispo
 # ---- SCHOOL CLASS ----
 class SchoolClassSerializer(serializers.ModelSerializer):
     level = LevelSerializer(read_only=True)
@@ -56,51 +69,56 @@ class SchoolClassSerializer(serializers.ModelSerializer):
         queryset=Level.objects.all(), write_only=True, source="level"
     )
     students = serializers.SerializerMethodField()
+    # 1. On déclare le nouveau champ
+    teachers = serializers.SerializerMethodField()
 
     class Meta:
         model = SchoolClass
-        fields = ["id", "name", "level", "level_id", "students"]
+        # 2. On ajoute 'teachers' dans les fields
+        fields = ["id", "name", "level", "level_id", "students", "teachers"]
 
     def get_students(self, obj):
-        """
-        Affiche les étudiants selon le type d'utilisateur :
-        - staff / admin : tous les étudiants, toutes infos
-        - parent : seulement ses enfants
-        - élève : tous les élèves de sa classe, uniquement noms/prénoms
-        - enseignant : tous les élèves des classes qu'il enseigne
-        """
+        # ... (Ton code existant pour get_students reste inchangé) ...
         request = self.context.get("request")
         if not request:
             return []
-
         user = request.user
 
-        # --- Admin/staff : accès complet
         if user.is_staff or user.is_superuser:
             return StudentSerializer(obj.students.all(), many=True).data
-
-        # --- Parent : uniquement ses enfants
         if hasattr(user, "parent"):
             qs = obj.students.filter(parent=user.parent)
             return StudentSerializer(qs, many=True).data
-
-        # --- Élève : uniquement les noms/prénoms des élèves de sa classe
         if hasattr(user, "student"):
             return [
                 {"first_name": s.user.first_name, "last_name": s.user.last_name}
                 for s in obj.students.all()
             ]
-
-        # --- Enseignant : élèves de ses classes
         if hasattr(user, "teacher"):
             teacher = user.teacher
-            if obj in teacher.classes.all():  # il doit être lié à cette classe
+            if obj in teacher.classes.all():
                 return StudentSerializer(obj.students.all(), many=True).data
-            return []  # si ce n'est pas sa classe → pas d'élèves
-
-        # --- Autres rôles : rien
+            return []
         return []
 
+    # 3. La méthode pour récupérer les profs
+    def get_teachers(self, obj):
+        """
+        Récupère tous les enseignants associés à cette classe.
+        """
+        # ATTENTION : La relation inverse dépend de ton modèle Teacher.
+        # Si dans Teacher tu as : classes = models.ManyToManyField(SchoolClass)
+        # Alors par défaut, c'est obj.teacher_set.all()
+        # Si tu as mis related_name='teachers', alors c'est obj.teachers.all()
+        
+        try:
+            # Essaye d'abord la relation standard Django
+            teachers_qs = obj.teacher_set.all()
+        except AttributeError:
+            # Si related_name='teachers' est défini dans le modèle Teacher
+            teachers_qs = obj.teachers.all()
+
+        return SimpleTeacherSerializer(teachers_qs, many=True).data
 # ---- SUBJECT ----
 class SubjectSerializer(serializers.ModelSerializer):
     class Meta:
@@ -255,26 +273,48 @@ class GradeSerializer(serializers.ModelSerializer):
 from rest_framework import serializers
 from academics.models import ClassScheduleEntry
 
+from rest_framework import serializers
+from .models import ClassScheduleEntry, Subject, SchoolClass
+# Assure-toi d'importer tes modèles Teacher/User correctement selon ton projet
+
 class ClassScheduleEntrySerializer(serializers.ModelSerializer):
-    school_class_name = serializers.StringRelatedField(source="school_class", read_only=True)
-    subject_name = serializers.StringRelatedField(source="subject", read_only=True)
-    teacher = serializers.PrimaryKeyRelatedField(read_only=True)  # renvoie l'ID du prof
-    teacher_name = serializers.SerializerMethodField()  # pour le nom complet
+    # Pour l'affichage (Read), on veut les détails
+    subject_name = serializers.CharField(source='subject.name', read_only=True)
+    teacher_name = serializers.SerializerMethodField()
+    class_name = serializers.CharField(source='school_class.name', read_only=True)
+    
+    # Pour l'affichage de l'heure formatée (optionnel mais pratique)
+    starts_at_formatted = serializers.SerializerMethodField()
+    ends_at_formatted = serializers.SerializerMethodField()
 
     class Meta:
         model = ClassScheduleEntry
         fields = [
-            "id",
-            "school_class", "school_class_name",
-            "subject", "subject_name",
-            "teacher", "teacher_name",
-            "weekday", "starts_at", "ends_at",
+            'id', 
+            'school_class', 'class_name',
+            'subject', 'subject_name',
+            'teacher', 'teacher_name',
+            'weekday', 
+            'starts_at', 'starts_at_formatted',
+            'ends_at', 'ends_at_formatted',
         ]
 
     def get_teacher_name(self, obj):
-        if obj.teacher:
-            return f"{obj.teacher.user.first_name} {obj.teacher.user.last_name}"
-        return None
+        if obj.teacher and obj.teacher.user:
+            return f"{obj.teacher.user.last_name} {obj.teacher.user.first_name}"
+        return "N/A"
+
+    def get_starts_at_formatted(self, obj):
+        return obj.starts_at.strftime("%H:%M") if obj.starts_at else None
+
+    def get_ends_at_formatted(self, obj):
+        return obj.ends_at.strftime("%H:%M") if obj.ends_at else None
+
+    # Validation personnalisée : empêcher qu'un cours finisse avant de commencer
+    def validate(self, data):
+        if data['starts_at'] >= data['ends_at']:
+            raise serializers.ValidationError("L'heure de fin doit être après l'heure de début.")
+        return data
 
 
 
@@ -487,3 +527,41 @@ class TimeSlotSerializer(serializers.ModelSerializer):
 
     def get_day_display(self, obj):
         return Weekday(obj.day).label
+# ... (tes imports existants)
+from academics.models import Announcement # Ajoute Announcement ici
+
+# =======================
+# Serializer Annonces
+# =======================
+class AnnouncementSerializer(serializers.ModelSerializer):
+    author_name = serializers.ReadOnlyField(source='created_by.username')
+    image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Announcement
+        fields = ["id", "title", "content", "image", "image_url", "created_by", "author_name", "created_at", "updated_at"]
+        read_only_fields = ["created_by", "created_at", "updated_at"]
+
+    def get_image_url(self, obj):
+        request = self.context.get('request')
+        if not obj.image:
+            return None
+        try:
+            url = obj.image.url
+        except Exception:
+            return None
+        if request is None:
+            return url  # fallback (relative or storage-provided)
+        return request.build_absolute_uri(url)
+# serializers.py
+from rest_framework import serializers
+from .models import StudentAttendance
+
+# ... tes imports existants
+from rest_framework import serializers
+from .models import StudentAttendance
+
+class StudentAttendanceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StudentAttendance
+        fields = ['id', 'student', 'schedule_entry', 'date', 'status', 'reason']  # reason ajouté

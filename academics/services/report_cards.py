@@ -3,8 +3,11 @@ from dataclasses import dataclass
 from decimal import Decimal, ROUND_HALF_UP
 from typing import List, Dict, Tuple, Optional, Iterable
 from collections import defaultdict
+import logging
 
 from academics.models import Grade, ClassSubject  # ajuste si nécessaire
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -55,6 +58,12 @@ def compute_report_cards_from_grades(
     }
     - full_weighting : active le calcul de la moyenne pondérée selon les coefficients.
     """
+    t0 = None
+    try:
+        t0 = __import__("time").time()
+    except Exception:
+        t0 = None
+
     grades = list(grades_iterable)
     if not grades:
         return []
@@ -183,6 +192,11 @@ def compute_report_cards_from_grades(
 
     # Tri stable final (optionnel)
     items.sort(key=lambda it: (str(it["student"]).lower(), it["term"]))
+    if t0:
+        try:
+            logger.info("compute_report_cards_from_grades: processed %d grades -> %d items in %.2fs", len(grades), len(items), __import__("time").time() - t0)
+        except Exception:
+            pass
     return items
 
 
@@ -190,10 +204,12 @@ def compute_report_cards_from_grades(
 def compute_report_cards_for_user(user, term=None, include_missing_subjects=False, full_weighting=True):
     # 1) Déterminer les élèves à inclure pour le calcul
     if hasattr(user, "student") and user.student.school_class_id:
-        ranking_students_qs = type(user.student).objects.filter(school_class_id=user.student.school_class_id)
+        Student = type(user.student)
+        ranking_students_qs = Student.objects.filter(school_class_id=user.student.school_class_id)
     elif hasattr(user, "parent"):
         classes = user.parent.students.values_list('school_class_id', flat=True).distinct()
-        ranking_students_qs = type(user.student).objects.filter(school_class_id__in=classes)
+        Student = type(user.student)
+        ranking_students_qs = Student.objects.filter(school_class_id__in=classes)
     else:
         ranking_students_qs = None  # admin
 

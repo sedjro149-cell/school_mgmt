@@ -1,0 +1,3 @@
+[33m6faeb5b[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m Add/Update requirements: ensure gunicorn present for Railway
+[33m7449031[m Add Procfile for Railway deployment
+[33md704394[m Ready for Railway deployment

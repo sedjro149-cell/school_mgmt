@@ -1,0 +1,321 @@
+{
+  "start": "2025-11-16T10:15:21.981808",
+  "levels": [
+    {
+      "level_id": 8,
+      "name": "2ndB",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 558,
+        "violations_c1c3_consecutive_days": 1,
+        "penalty_consecutive_weight": 4360
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 11,
+      "name": "1èreAA",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 490,
+        "violations_c1c3_consecutive_days": 2,
+        "penalty_consecutive_weight": 4240
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 18,
+      "name": "TleD",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 491,
+        "violations_c1c3_consecutive_days": 0,
+        "penalty_consecutive_weight": 4120
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 17,
+      "name": "TleC",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 479,
+        "violations_c1c3_consecutive_days": 0,
+        "penalty_consecutive_weight": 4040
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 14,
+      "name": "1èreD",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 465,
+        "violations_c1c3_consecutive_days": 0,
+        "penalty_consecutive_weight": 3960
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 16,
+      "name": "TleB",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 543,
+        "violations_c1c3_consecutive_days": 0,
+        "penalty_consecutive_weight": 3960
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 13,
+      "name": "1èreC",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 493,
+        "violations_c1c3_consecutive_days": 0,
+        "penalty_consecutive_weight": 3920
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 6,
+      "name": "3eML",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "no_feasible": [
+          {
+            "c": 12,
+            "s": 6,
+            "reason": "Quota non-représentable par 120/180 en <= 3 sessions"
+          }
+        ]
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 6,
+      "name": "3eML",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "no_feasible": [
+          {
+            "c": 12,
+            "s": 6,
+            "reason": "Quota non-représentable par 120/180 en <= 3 sessions"
+          }
+        ]
+      },
+      "attempt": 2
+    },
+    {
+      "level_id": 6,
+      "name": "3eML",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "no_feasible": [
+          {
+            "c": 12,
+            "s": 6,
+            "reason": "Quota non-représentable par 120/180 en <= 3 sessions"
+          }
+        ]
+      },
+      "attempt": 3
+    },
+    {
+      "level_id": 6,
+      "name": "3eML",
+      "plan_status": false,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "no_feasible": [
+          {
+            "c": 12,
+            "s": 6,
+            "reason": "Quota non-représentable par 120/180 en <= 3 sessions"
+          }
+        ]
+      },
+      "attempt": 4
+    },
+    {
+      "level_id": 12,
+      "name": "1èreB",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 512,
+        "violations_c1c3_consecutive_days": 0,
+        "penalty_consecutive_weight": 3880
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 10,
+      "name": "2ndD",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 429,
+        "violations_c1c3_consecutive_days": 0,
+        "penalty_consecutive_weight": 3880
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 5,
+      "name": "3eMC",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 442,
+        "violations_c1c3_consecutive_days": 0,
+        "penalty_consecutive_weight": 3880
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 4,
+      "name": "4eML",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 465,
+        "violations_c1c3_consecutive_days": 0,
+        "penalty_consecutive_weight": 3880
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 15,
+      "name": "TleA",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 445,
+        "violations_c1c3_consecutive_days": 0,
+        "penalty_consecutive_weight": 3840
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 9,
+      "name": "2ndC",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 431,
+        "violations_c1c3_consecutive_days": 0,
+        "penalty_consecutive_weight": 3719
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 3,
+      "name": "4eMC",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 433,
+        "violations_c1c3_consecutive_days": 0,
+        "penalty_consecutive_weight": 3560
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 2,
+      "name": "5e",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 360,
+        "violations_c1c3_consecutive_days": 0,
+        "penalty_consecutive_weight": 3360
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 1,
+      "name": "6e",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 363,
+        "violations_c1c3_consecutive_days": 0,
+        "penalty_consecutive_weight": 3360
+      },
+      "attempt": 1
+    },
+    {
+      "level_id": 7,
+      "name": "2ndA",
+      "plan_status": true,
+      "diag": {
+        "num_classes": 2,
+        "missing_teachers": [],
+        "status": 4,
+        "est_vars_after_pruning": 423,
+        "violations_c1c3_consecutive_days": 0,
+        "penalty_consecutive_weight": 3320
+      },
+      "attempt": 1
+    }
+  ],
+  "merged": {
+    "conflicts": [],
+    "resolved": [],
+    "shortfalls": []
+  },
+  "persisted": {
+    "created": 489
+  },
+  "end": "2025-11-16T10:15:27.058091",
+  "global_entries_count": 489
+}

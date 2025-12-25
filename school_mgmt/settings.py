@@ -1,4 +1,4 @@
-# school_mgmt/settings.py — robuste et prêt pour prod/dev
+# school_mgmt/settings.py — Version Corrigée pour Railway/Prod
 import os
 from pathlib import Path
 from datetime import timedelta
@@ -22,31 +22,34 @@ if load_dotenv:
 # ---------------------------
 # Security / Debug
 # ---------------------------
-# Support both DJANGO_SECRET_KEY and SECRET_KEY env names
 SECRET_KEY = (
     os.environ.get("DJANGO_SECRET_KEY")
     or os.environ.get("SECRET_KEY")
     or "fallback-dev-secret-key-please-change"
 )
 
-# Robust boolean parsing for DEBUG
 def bool_from_env(key, default=False):
     val = os.environ.get(key)
     if val is None:
         return default
     return str(val).strip().lower() in ("1", "true", "yes", "on")
 
+# ATTENTION : En prod sur Railway, assure-toi d'avoir la variable d'env DEBUG=False
 DEBUG = bool_from_env("DEBUG", default=True)
 
-# ALLOWED_HOSTS: supports ALLOWED_HOSTS or DJANGO_ALLOWED_HOSTS env var
+# ---------------------------
+# Allowed hosts
+# ---------------------------
 _env_hosts = os.environ.get("ALLOWED_HOSTS") or os.environ.get("DJANGO_ALLOWED_HOSTS") or ""
 if _env_hosts:
-    ALLOWED_HOSTS = [h.strip() for h in _env_hosts.split(",") if h.strip()]
+    if "," in _env_hosts:
+        ALLOWED_HOSTS = [h.strip() for h in _env_hosts.split(",") if h.strip()]
+    else:
+        ALLOWED_HOSTS = [h.strip() for h in _env_hosts.split() if h.strip()]
 else:
-    # safe defaults for dev
-    ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'schoolmgmt-production.up.railway.app']
+    # Par défaut, on autorise localhost et ton domaine Railway
+    ALLOWED_HOSTS = ["localhost", "127.0.0.1", "schoolmgmt-production.up.railway.app", ".railway.app"]
 
-# You can append runtime host names if needed:
 _extra_host = os.environ.get("EXTRA_ALLOWED_HOST")
 if _extra_host:
     ALLOWED_HOSTS.append(_extra_host.strip())
@@ -71,15 +74,16 @@ INSTALLED_APPS = [
     "core",
     "academics",
     "fees",
+    "notifications",
 ]
 
 # ---------------------------
 # Middleware
 # ---------------------------
 MIDDLEWARE = [
-    "corsheaders.middleware.CorsMiddleware",               # should be high
+    "corsheaders.middleware.CorsMiddleware", # Doit être tout en haut
     "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",         # static files in prod
+    "whitenoise.middleware.WhiteNoiseMiddleware", # Pour les fichiers statiques (CSS/JS)
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -89,22 +93,25 @@ MIDDLEWARE = [
 ]
 
 # ---------------------------
-# CORS
+# CORS (Gestion des origines pour Flutter)
 # ---------------------------
-# Accept several env formats: comma-separated OR space-separated
 _env_cors = os.environ.get("CORS_ALLOWED_ORIGINS") or os.environ.get("CORS_ALLOWED_ORIGIN") or ""
 CORS_ALLOWED_ORIGINS = []
+
 if _env_cors:
-    # split on comma or whitespace
     if "," in _env_cors:
         CORS_ALLOWED_ORIGINS = [u.strip() for u in _env_cors.split(",") if u.strip()]
     else:
         CORS_ALLOWED_ORIGINS = [u.strip() for u in _env_cors.split() if u.strip()]
 
-# If no explicit origins and DEBUG True, allow all for dev convenience
-CORS_ALLOW_ALL_ORIGINS = bool_from_env("CORS_ALLOW_ALL_ORIGINS", default=DEBUG and not CORS_ALLOWED_ORIGINS)
-# Allow credentials if explicitly requested (rare for JWT)
+# Si tu n'as pas défini d'origines strictes, on autorise tout (utile pour dev mobile/web local)
+CORS_ALLOW_ALL_ORIGINS = bool_from_env("CORS_ALLOW_ALL_ORIGINS", default=True) 
 CORS_ALLOW_CREDENTIALS = bool_from_env("CORS_ALLOW_CREDENTIALS", default=False)
+
+# CSRF Trust pour Railway (HTTPS)
+CSRF_TRUSTED_ORIGINS = [
+    "https://schoolmgmt-production.up.railway.app",
+]
 
 # ---------------------------
 # URL / Templates / WSGI
@@ -114,7 +121,7 @@ ROOT_URLCONF = "school_mgmt.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],  # add project-level templates if any
+        "DIRS": [],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -129,18 +136,18 @@ TEMPLATES = [
 WSGI_APPLICATION = "school_mgmt.wsgi.application"
 
 # ---------------------------
-# Database — robust handling
+# Database
 # ---------------------------
 DATABASE_URL = os.environ.get("DATABASE_URL")
 if DATABASE_URL and dj_database_url:
-    # ssl_require toggles automatically based on DEBUG or explicit env DB_SSL
-    db_ssl_env = os.environ.get("DB_SSL", "")
-    ssl_require = bool_from_env("DB_SSL", default=not DEBUG)
+    ssl_env = os.environ.get("DB_SSL", "")
+    ssl_require = bool_from_env("DB_SSL", default=(not DEBUG))
+    conn_max_age = int(os.environ.get("DB_CONN_MAX_AGE", 600))
     DATABASES = {
-        "default": dj_database_url.parse(DATABASE_URL, conn_max_age=int(os.environ.get("DB_CONN_MAX_AGE", 600)), ssl_require=ssl_require)
+        "default": dj_database_url.parse(DATABASE_URL, conn_max_age=conn_max_age, ssl_require=ssl_require)
     }
 else:
-    # Try individual Postgres env vars
+    # Configuration manuelle ou fallback SQLite
     DB_NAME = os.environ.get("DB_NAME")
     DB_USER = os.environ.get("DB_USER")
     DB_PASS = os.environ.get("DB_PASSWORD") or os.environ.get("DB_PASS")
@@ -159,7 +166,6 @@ else:
             }
         }
     else:
-        # Final fallback to sqlite for maximum robustness (local dev convenience)
         DATABASES = {
             "default": {
                 "ENGINE": "django.db.backends.sqlite3",
@@ -186,20 +192,22 @@ USE_I18N = True
 USE_TZ = True
 
 # ---------------------------
-# Static files (WhiteNoise)
+# Static files (WhiteNoise) & Media
 # ---------------------------
 STATIC_URL = os.environ.get("STATIC_URL", "/static/")
 STATIC_ROOT = Path(os.environ.get("STATIC_ROOT", BASE_DIR / "staticfiles"))
-# optional additional static dirs
-_extra_static_dirs = os.environ.get("STATICFILES_DIRS", "")
-if _extra_static_dirs:
-    # comma separated list of relative paths from BASE_DIR
-    STATICFILES_DIRS = [BASE_DIR / p.strip() for p in _extra_static_dirs.split(",") if p.strip()]
-else:
-    STATICFILES_DIRS = []
 
-# Use WhiteNoise storage by default in production-like envs
 STATICFILES_STORAGE = os.environ.get("STATICFILES_STORAGE", "whitenoise.storage.CompressedManifestStaticFilesStorage")
+
+# --- MEDIA CONFIGURATION (CORRIGÉE) ---
+MEDIA_URL = os.environ.get("MEDIA_URL", "/media/")
+
+# CRITIQUE : Utiliser /app/media sur Railway pour la persistance via Volume
+# Si on est en local (DEBUG=True), on peut utiliser un dossier local, sinon /app/media
+if not DEBUG and os.path.exists("/app/media"):
+    MEDIA_ROOT = Path("/app/media")
+else:
+    MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", BASE_DIR / "media"))
 
 # ---------------------------
 # Default auto field
@@ -225,56 +233,11 @@ SIMPLE_JWT = {
 }
 
 # ---------------------------
-# Production security hardening
+# Production security hardening (CRUCIAL POUR RAILWAY)
 # ---------------------------
-# Only enable strong security when DEBUG is False (or when explicitly requested)
+# Ceci dit à Django de faire confiance au proxy Railway pour le SSL.
+# Sans ça, Django génère des liens HTTP (image broken) alors que le site est HTTPS.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 if not DEBUG or bool_from_env("FORCE_SECURE", default=False):
     SECURE_SSL_REDIRECT = bool_from_env("SECURE_SSL_REDIRECT", default=True)
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
-
-    # If cross-site cookies are required (rare), set to 'None' otherwise Lax
-    if CORS_ALLOW_CREDENTIALS:
-        SESSION_COOKIE_SAMESITE = os.environ.get("SESSION_COOKIE_SAMESITE", "None")
-        CSRF_COOKIE_SAMESITE = os.environ.get("CSRF_COOKIE_SAMESITE", "None")
-    else:
-        SESSION_COOKIE_SAMESITE = os.environ.get("SESSION_COOKIE_SAMESITE", "Lax")
-        CSRF_COOKIE_SAMESITE = os.environ.get("CSRF_COOKIE_SAMESITE", "Lax")
-
-    SECURE_HSTS_SECONDS = int(os.environ.get("SECURE_HSTS_SECONDS", 3600))
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = bool_from_env("SECURE_HSTS_INCLUDE_SUBDOMAINS", default=True)
-    SECURE_HSTS_PRELOAD = bool_from_env("SECURE_HSTS_PRELOAD", default=True)
-else:
-    SECURE_SSL_REDIRECT = False
-
-SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-X_FRAME_OPTIONS = os.environ.get("X_FRAME_OPTIONS", "DENY")
-
-# ---------------------------
-# Logging — console friendly for Railway logs
-# ---------------------------
-LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
-
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "formatters": {
-        "default": {"format": "%(levelname)s %(asctime)s %(name)s %(message)s"},
-    },
-    "handlers": {
-        "console": {"class": "logging.StreamHandler", "formatter": "default"},
-    },
-    "root": {"handlers": ["console"], "level": LOG_LEVEL},
-    "loggers": {
-        "django": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
-        "django.request": {"handlers": ["console"], "level": "ERROR", "propagate": False},
-    },
-}
-
-# ---------------------------
-# Helpful quick-health endpoint name (optional)
-# ---------------------------
-# If you expose a simple /health/ endpoint in your urls, it helps uptime checks
-HEALTHCHECK_URL = os.environ.get("HEALTHCHECK_URL", "/health/")
-
-# End of settings.py

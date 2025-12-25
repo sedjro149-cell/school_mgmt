@@ -1,4 +1,4 @@
-# finance/urls.py
+# fees/urls.py
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import FeeViewSet, FeeTypeViewSet, PaymentViewSet, FeeTypeAmountViewSet, fees_statistics, fees_monthly

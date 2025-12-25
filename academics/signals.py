@@ -36,3 +36,22 @@ def create_or_update_report_card(sender, instance, **kwargs):
         term=term,
         defaults={'average': round(Decimal(general_average), 2)}
     )
+# grades/signals.py
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+import logging
+
+logger = logging.getLogger(__name__)
+
+@receiver(post_save, sender='grades.Grade')
+def grade_post_save_notify(sender, instance, created, **kwargs):
+    # respect suppression flag to avoid duplicates on bulk operations
+    if getattr(instance, '_suppress_notifications', False):
+        return
+
+    try:
+        from notifications.service import bulk_notify_grades
+        action = 'created' if created else 'updated'
+        bulk_notify_grades([(instance.id, action)])
+    except Exception:
+        logger.exception("Error in grade_post_save_notify for grade %s", getattr(instance, 'id', None))
