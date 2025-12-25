@@ -48,7 +48,7 @@ if _env_hosts:
         ALLOWED_HOSTS = [h.strip() for h in _env_hosts.split() if h.strip()]
 else:
     # Par défaut, on autorise localhost et ton domaine Railway
-    ALLOWED_HOSTS = ["localhost", "127.0.0.1", "schoolmgmt-production.up.railway.app", ".railway.app"]
+    ALLOWED_HOSTS = ["localhost", "127.0.0.1", "schoolmgmt-production.up.railway.app", ".railway.app", ".onrender.com"]
 
 _extra_host = os.environ.get("EXTRA_ALLOWED_HOST")
 if _extra_host:
