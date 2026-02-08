@@ -1,7 +1,8 @@
-# school_mgmt/settings.py — Version Corrigée pour Railway/Prod
+# school_mgmt/settings.py — Version Corrigée pour Railway/Prod & Ngrok
 import os
 from pathlib import Path
 from datetime import timedelta
+from corsheaders.defaults import default_headers # Import nécessaire pour les headers CORS
 
 # Optional imports — tolerant if missing during early dev
 try:
@@ -34,7 +35,6 @@ def bool_from_env(key, default=False):
         return default
     return str(val).strip().lower() in ("1", "true", "yes", "on")
 
-# ATTENTION : En prod sur Railway, assure-toi d'avoir la variable d'env DEBUG=False
 DEBUG = bool_from_env("DEBUG", default=True)
 
 # ---------------------------
@@ -47,8 +47,7 @@ if _env_hosts:
     else:
         ALLOWED_HOSTS = [h.strip() for h in _env_hosts.split() if h.strip()]
 else:
-    # Par défaut, on autorise localhost et ton domaine Railway
-    ALLOWED_HOSTS = ["localhost", "127.0.0.1", "schoolmgmt-production.up.railway.app", ".railway.app", ".onrender.com"]
+    ALLOWED_HOSTS = ["localhost", "investigational-hopefully-willa.ngrok-free.dev", "127.0.0.1", "schoolmgmt-production.up.railway.app", ".railway.app", ".onrender.com"]
 
 _extra_host = os.environ.get("EXTRA_ALLOWED_HOST")
 if _extra_host:
@@ -83,7 +82,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware", # Doit être tout en haut
     "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware", # Pour les fichiers statiques (CSS/JS)
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -93,7 +92,7 @@ MIDDLEWARE = [
 ]
 
 # ---------------------------
-# CORS (Gestion des origines pour Flutter)
+# CORS (Gestion des origines)
 # ---------------------------
 _env_cors = os.environ.get("CORS_ALLOWED_ORIGINS") or os.environ.get("CORS_ALLOWED_ORIGIN") or ""
 CORS_ALLOWED_ORIGINS = []
@@ -104,12 +103,18 @@ if _env_cors:
     else:
         CORS_ALLOWED_ORIGINS = [u.strip() for u in _env_cors.split() if u.strip()]
 
-# Si tu n'as pas défini d'origines strictes, on autorise tout (utile pour dev mobile/web local)
 CORS_ALLOW_ALL_ORIGINS = bool_from_env("CORS_ALLOW_ALL_ORIGINS", default=True) 
 CORS_ALLOW_CREDENTIALS = bool_from_env("CORS_ALLOW_CREDENTIALS", default=False)
 
-# CSRF Trust pour Railway (HTTPS)
+# AJOUT CRUCIAL : Autoriser les headers de bypass pour ngrok et serveo
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "ngrok-skip-browser-warning",
+    "bypass-tunnel-reminder",
+]
+
+# CSRF Trust
 CSRF_TRUSTED_ORIGINS = [
+    #"https://investigational-hopefully-willa.ngrok-free.dev",
     "https://schoolmgmt-production.up.railway.app",
 ]
 
@@ -140,14 +145,12 @@ WSGI_APPLICATION = "school_mgmt.wsgi.application"
 # ---------------------------
 DATABASE_URL = os.environ.get("DATABASE_URL")
 if DATABASE_URL and dj_database_url:
-    ssl_env = os.environ.get("DB_SSL", "")
     ssl_require = bool_from_env("DB_SSL", default=(not DEBUG))
     conn_max_age = int(os.environ.get("DB_CONN_MAX_AGE", 600))
     DATABASES = {
         "default": dj_database_url.parse(DATABASE_URL, conn_max_age=conn_max_age, ssl_require=ssl_require)
     }
 else:
-    # Configuration manuelle ou fallback SQLite
     DB_NAME = os.environ.get("DB_NAME")
     DB_USER = os.environ.get("DB_USER")
     DB_PASS = os.environ.get("DB_PASSWORD") or os.environ.get("DB_PASS")
@@ -174,16 +177,6 @@ else:
         }
 
 # ---------------------------
-# Password validation
-# ---------------------------
-AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
-    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
-    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
-]
-
-# ---------------------------
 # Internationalization
 # ---------------------------
 LANGUAGE_CODE = "en-us"
@@ -192,26 +185,18 @@ USE_I18N = True
 USE_TZ = True
 
 # ---------------------------
-# Static files (WhiteNoise) & Media
+# Static files & Media
 # ---------------------------
 STATIC_URL = os.environ.get("STATIC_URL", "/static/")
 STATIC_ROOT = Path(os.environ.get("STATIC_ROOT", BASE_DIR / "staticfiles"))
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-STATICFILES_STORAGE = os.environ.get("STATICFILES_STORAGE", "whitenoise.storage.CompressedManifestStaticFilesStorage")
-
-# --- MEDIA CONFIGURATION (CORRIGÉE) ---
 MEDIA_URL = os.environ.get("MEDIA_URL", "/media/")
-
-# CRITIQUE : Utiliser /app/media sur Railway pour la persistance via Volume
-# Si on est en local (DEBUG=True), on peut utiliser un dossier local, sinon /app/media
 if not DEBUG and os.path.exists("/app/media"):
     MEDIA_ROOT = Path("/app/media")
 else:
     MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", BASE_DIR / "media"))
 
-# ---------------------------
-# Default auto field
-# ---------------------------
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # ---------------------------
@@ -229,14 +214,12 @@ REST_FRAMEWORK = {
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=int(os.environ.get("JWT_ACCESS_HOURS", 100))),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=int(os.environ.get("JWT_REFRESH_DAYS", 7))),
-    "AUTH_HEADER_TYPES": tuple(os.environ.get("JWT_AUTH_HEADER_TYPES", "Bearer").split(",")),
+    "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
 # ---------------------------
-# Production security hardening (CRUCIAL POUR RAILWAY)
+# Production security hardening
 # ---------------------------
-# Ceci dit à Django de faire confiance au proxy Railway pour le SSL.
-# Sans ça, Django génère des liens HTTP (image broken) alors que le site est HTTPS.
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 if not DEBUG or bool_from_env("FORCE_SECURE", default=False):
