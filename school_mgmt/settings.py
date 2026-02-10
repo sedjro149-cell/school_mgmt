@@ -1,10 +1,11 @@
-# school_mgmt/settings.py — Version Corrigée pour Railway/Prod & Ngrok
+# school_mgmt/settings.py — Version corrigée NGROK / DEV / PROD
+
 import os
 from pathlib import Path
 from datetime import timedelta
-from corsheaders.defaults import default_headers # Import nécessaire pour les headers CORS
+from corsheaders.defaults import default_headers
 
-# Optional imports — tolerant if missing during early dev
+# Optional imports
 try:
     import dj_database_url
 except Exception:
@@ -15,14 +16,17 @@ try:
 except Exception:
     load_dotenv = None
 
-# Load local .env file if python-dotenv available
+# -------------------------------------------------
+# Base
+# -------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent.parent
+
 if load_dotenv:
     load_dotenv(dotenv_path=os.path.join(BASE_DIR, ".env"))
 
-# ---------------------------
+# -------------------------------------------------
 # Security / Debug
-# ---------------------------
+# -------------------------------------------------
 SECRET_KEY = (
     os.environ.get("DJANGO_SECRET_KEY")
     or os.environ.get("SECRET_KEY")
@@ -37,9 +41,9 @@ def bool_from_env(key, default=False):
 
 DEBUG = bool_from_env("DEBUG", default=True)
 
-# ---------------------------
+# -------------------------------------------------
 # Allowed hosts
-# ---------------------------
+# -------------------------------------------------
 _env_hosts = os.environ.get("ALLOWED_HOSTS") or os.environ.get("DJANGO_ALLOWED_HOSTS") or ""
 if _env_hosts:
     if "," in _env_hosts:
@@ -47,15 +51,23 @@ if _env_hosts:
     else:
         ALLOWED_HOSTS = [h.strip() for h in _env_hosts.split() if h.strip()]
 else:
-    ALLOWED_HOSTS = ["localhost", "investigational-hopefully-willa.ngrok-free.dev", "127.0.0.1", "schoolmgmt-production.up.railway.app", ".railway.app", ".onrender.com"]
+    ALLOWED_HOSTS = [
+        "localhost",
+        "127.0.0.1",
+        "johnnie-epiphloedal-decretively.ngrok-free.dev",
+        "investigational-hopefully-willa.ngrok-free.dev",
+        "schoolmgmt-production.up.railway.app",
+        ".railway.app",
+        ".onrender.com",
+    ]
 
 _extra_host = os.environ.get("EXTRA_ALLOWED_HOST")
 if _extra_host:
     ALLOWED_HOSTS.append(_extra_host.strip())
 
-# ---------------------------
+# -------------------------------------------------
 # Installed apps
-# ---------------------------
+# -------------------------------------------------
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -76,11 +88,11 @@ INSTALLED_APPS = [
     "notifications",
 ]
 
-# ---------------------------
+# -------------------------------------------------
 # Middleware
-# ---------------------------
+# -------------------------------------------------
 MIDDLEWARE = [
-    "corsheaders.middleware.CorsMiddleware", # Doit être tout en haut
+    "corsheaders.middleware.CorsMiddleware",  # Must be at the top
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -91,36 +103,32 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-# ---------------------------
-# CORS (Gestion des origines)
-# ---------------------------
-_env_cors = os.environ.get("CORS_ALLOWED_ORIGINS") or os.environ.get("CORS_ALLOWED_ORIGIN") or ""
-CORS_ALLOWED_ORIGINS = []
+# -------------------------------------------------
+# CORS / CSRF
+# -------------------------------------------------
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOW_CREDENTIALS = True
 
-if _env_cors:
-    if "," in _env_cors:
-        CORS_ALLOWED_ORIGINS = [u.strip() for u in _env_cors.split(",") if u.strip()]
-    else:
-        CORS_ALLOWED_ORIGINS = [u.strip() for u in _env_cors.split() if u.strip()]
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "https://johnnie-epiphloedal-decretively.ngrok-free.dev",
+    "https://investigational-hopefully-willa.ngrok-free.dev",
+]
 
-CORS_ALLOW_ALL_ORIGINS = bool_from_env("CORS_ALLOW_ALL_ORIGINS", default=True) 
-CORS_ALLOW_CREDENTIALS = bool_from_env("CORS_ALLOW_CREDENTIALS", default=False)
-
-# AJOUT CRUCIAL : Autoriser les headers de bypass pour ngrok et serveo
 CORS_ALLOW_HEADERS = list(default_headers) + [
     "ngrok-skip-browser-warning",
     "bypass-tunnel-reminder",
 ]
 
-# CSRF Trust
 CSRF_TRUSTED_ORIGINS = [
-    #"https://investigational-hopefully-willa.ngrok-free.dev",
+    "https://johnnie-epiphloedal-decretively.ngrok-free.dev",
+    "https://investigational-hopefully-willa.ngrok-free.dev",
     "https://schoolmgmt-production.up.railway.app",
 ]
 
-# ---------------------------
-# URL / Templates / WSGI
-# ---------------------------
+# -------------------------------------------------
+# URLs / Templates / WSGI
+# -------------------------------------------------
 ROOT_URLCONF = "school_mgmt.urls"
 
 TEMPLATES = [
@@ -140,15 +148,20 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "school_mgmt.wsgi.application"
 
-# ---------------------------
+# -------------------------------------------------
 # Database
-# ---------------------------
+# -------------------------------------------------
 DATABASE_URL = os.environ.get("DATABASE_URL")
+
 if DATABASE_URL and dj_database_url:
     ssl_require = bool_from_env("DB_SSL", default=(not DEBUG))
     conn_max_age = int(os.environ.get("DB_CONN_MAX_AGE", 600))
     DATABASES = {
-        "default": dj_database_url.parse(DATABASE_URL, conn_max_age=conn_max_age, ssl_require=ssl_require)
+        "default": dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=conn_max_age,
+            ssl_require=ssl_require,
+        )
     }
 else:
     DB_NAME = os.environ.get("DB_NAME")
@@ -172,36 +185,33 @@ else:
         DATABASES = {
             "default": {
                 "ENGINE": "django.db.backends.sqlite3",
-                "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
+                "NAME": BASE_DIR / "db.sqlite3",
             }
         }
 
-# ---------------------------
+# -------------------------------------------------
 # Internationalization
-# ---------------------------
+# -------------------------------------------------
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = os.environ.get("TIME_ZONE", "UTC")
 USE_I18N = True
 USE_TZ = True
 
-# ---------------------------
-# Static files & Media
-# ---------------------------
+# -------------------------------------------------
+# Static / Media
+# -------------------------------------------------
 STATIC_URL = os.environ.get("STATIC_URL", "/static/")
 STATIC_ROOT = Path(os.environ.get("STATIC_ROOT", BASE_DIR / "staticfiles"))
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 MEDIA_URL = os.environ.get("MEDIA_URL", "/media/")
-if not DEBUG and os.path.exists("/app/media"):
-    MEDIA_ROOT = Path("/app/media")
-else:
-    MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", BASE_DIR / "media"))
+MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", BASE_DIR / "media"))
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# ---------------------------
-# Django REST framework + JWT
-# ---------------------------
+# -------------------------------------------------
+# DRF + JWT
+# -------------------------------------------------
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
@@ -217,10 +227,10 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
-# ---------------------------
-# Production security hardening
-# ---------------------------
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+# -------------------------------------------------
+# Production security
+# -------------------------------------------------
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 if not DEBUG or bool_from_env("FORCE_SECURE", default=False):
     SECURE_SSL_REDIRECT = bool_from_env("SECURE_SSL_REDIRECT", default=True)
