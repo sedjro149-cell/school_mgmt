@@ -1,6 +1,5 @@
-# school_mgmt/settings.py — Version corrigée NGROK / DEV / PROD
-
 import os
+import warnings
 from pathlib import Path
 from datetime import timedelta
 from corsheaders.defaults import default_headers
@@ -15,6 +14,8 @@ try:
     from dotenv import load_dotenv
 except Exception:
     load_dotenv = None
+
+from django.core.exceptions import ImproperlyConfigured
 
 # -------------------------------------------------
 # Base
@@ -39,7 +40,13 @@ def bool_from_env(key, default=False):
         return default
     return str(val).strip().lower() in ("1", "true", "yes", "on")
 
-DEBUG = bool_from_env("DEBUG", default=True)
+# Default to False in prod-ready settings
+DEBUG = bool_from_env("DEBUG", default=False)
+
+# In production ensure a proper SECRET_KEY is provided
+if not DEBUG:
+    if not os.environ.get("DJANGO_SECRET_KEY") and not os.environ.get("SECRET_KEY"):
+        raise ImproperlyConfigured("DJANGO_SECRET_KEY (or SECRET_KEY) environment variable is required in production.")
 
 # -------------------------------------------------
 # Allowed hosts
@@ -51,11 +58,10 @@ if _env_hosts:
     else:
         ALLOWED_HOSTS = [h.strip() for h in _env_hosts.split() if h.strip()]
 else:
+    # Minimal safe defaults for local dev + common hosting patterns (you should override with env in prod)
     ALLOWED_HOSTS = [
         "localhost",
         "127.0.0.1",
-        "johnnie-epiphloedal-decretively.ngrok-free.dev",
-        "investigational-hopefully-willa.ngrok-free.dev",
         "schoolmgmt-production.up.railway.app",
         ".railway.app",
         ".onrender.com",
@@ -106,25 +112,32 @@ MIDDLEWARE = [
 # -------------------------------------------------
 # CORS / CSRF
 # -------------------------------------------------
+# Keep strict defaults; explicitly set allowed origins in env in prod
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
-    "https://johnnie-epiphloedal-decretively.ngrok-free.dev",
-    "https://investigational-hopefully-willa.ngrok-free.dev",
 ]
 
-CORS_ALLOW_HEADERS = list(default_headers) + [
-    "ngrok-skip-browser-warning",
-    "bypass-tunnel-reminder",
-]
+# Allow common headers; removed ngrok-specific headers
+CORS_ALLOW_HEADERS = list(default_headers)
 
-CSRF_TRUSTED_ORIGINS = [
-    "https://johnnie-epiphloedal-decretively.ngrok-free.dev",
-    "https://investigational-hopefully-willa.ngrok-free.dev",
-    "https://schoolmgmt-production.up.railway.app",
-]
+# Build CSRF_TRUSTED_ORIGINS from ALLOWED_HOSTS (https)
+_csrf_from_env = os.environ.get("CSRF_TRUSTED_ORIGINS")
+if _csrf_from_env:
+    CSRF_TRUSTED_ORIGINS = [s.strip() for s in _csrf_from_env.split(",") if s.strip()]
+else:
+    CSRF_TRUSTED_ORIGINS = []
+    for h in ALLOWED_HOSTS:
+        # skip empty or wildcard entries
+        if not h or h.startswith("."):
+            continue
+        # if host already contains scheme, keep as-is
+        if h.startswith("http://") or h.startswith("https://"):
+            CSRF_TRUSTED_ORIGINS.append(h)
+        else:
+            CSRF_TRUSTED_ORIGINS.append(f"https://{h}")
 
 # -------------------------------------------------
 # URLs / Templates / WSGI
@@ -219,8 +232,18 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
     ),
-}
 
+    # Pagination par défaut (25 par page, modifiable)
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 25,
+
+    # Backends de filtrage (recherche côté serveur)
+    "DEFAULT_FILTER_BACKENDS": [
+        "django_filters.rest_framework.DjangoFilterBackend",
+        "rest_framework.filters.SearchFilter",
+        "rest_framework.filters.OrderingFilter",
+    ],
+}
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=int(os.environ.get("JWT_ACCESS_HOURS", 100))),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=int(os.environ.get("JWT_REFRESH_DAYS", 7))),
@@ -232,5 +255,17 @@ SIMPLE_JWT = {
 # -------------------------------------------------
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
-if not DEBUG or bool_from_env("FORCE_SECURE", default=False):
+FORCE_SECURE = bool_from_env("FORCE_SECURE", default=False)
+
+if not DEBUG or FORCE_SECURE:
     SECURE_SSL_REDIRECT = bool_from_env("SECURE_SSL_REDIRECT", default=True)
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = int(os.environ.get("SECURE_HSTS_SECONDS", 31536000))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = bool_from_env("SECURE_HSTS_INCLUDE_SUBDOMAINS", default=True)
+    SECURE_HSTS_PRELOAD = bool_from_env("SECURE_HSTS_PRELOAD", default=True)
+    SECURE_BROWSER_XSS_FILTER = True
+    X_FRAME_OPTIONS = "DENY"
+else:
+    # dev-friendly defaults
+    SECURE_SSL_REDIRECT = False

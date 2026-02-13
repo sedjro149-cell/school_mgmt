@@ -22,6 +22,8 @@ from .serializers import (
     TeacherSerializer,
     ParentProfileSerializer,
     StudentProfileSerializer,
+    StudentListSerializer,  # <-- ajoute ceci
+
 )
 
 # permissions (tu as déjà ces classes dans ton projet)
@@ -32,28 +34,27 @@ from academics.models import SchoolClass, Grade, ClassSubject
 from academics.services.report_cards import compute_report_cards_from_grades
 
 
-# ------------------------------------------------------------------
-# STUDENT viewset
-# ------------------------------------------------------------------
+from rest_framework import filters
+from django_filters.rest_framework import DjangoFilterBackend
+# Assure-toi d'importer StudentListSerializer et StudentProfileSerializer/StudentSerializer
+
 class StudentViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet optimisé avec Eager Loading (select_related).
-    """
-    # LIGNE AJOUTÉE ICI POUR CORRIGER L'ERREUR "basename"
     queryset = Student.objects.all()
-    
-    serializer_class = StudentSerializer
     permission_classes = [IsAuthenticated, IsParentOrReadOnly]
+
+    # Filtrage / recherche / ordering
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ["user__first_name", "user__last_name", "user__username", "user__email"]
+    filterset_fields = ["school_class", "sex"]
+    ordering_fields = ["user__first_name", "user__last_name", "date_of_birth"]
+    ordering = ["user__last_name", "user__first_name"]
 
     def get_queryset(self):
         user = self.request.user
-        
-        # OPTIMISATION CRITIQUE :
-        # On écrase le queryset par défaut pour appliquer le select_related
         queryset = Student.objects.select_related(
-            'user', 
-            'school_class', 
-            'parent__user'
+            "user",
+            "school_class",
+            "parent__user",
         ).all()
 
         # Admin / staff
@@ -76,10 +77,23 @@ class StudentViewSet(viewsets.ModelViewSet):
 
         return queryset.none()
 
+    def get_serializer_class(self):
+        # Serializer léger pour la liste (performances)
+        if self.action == "list":
+            return StudentListSerializer
+        # Détail / create / update utilisent les serializers complets
+        if self.action == "retrieve":
+            return StudentProfileSerializer
+        return StudentSerializer
+
+    # Paginer aussi les actions custom
     @action(detail=False, methods=["get"], url_path=r"by-class/(?P<class_id>[^/.]+)")
     def by_class(self, request, class_id=None):
-        # On filtre sur le queryset optimisé
         students = self.get_queryset().filter(school_class_id=class_id).order_by("user__last_name", "user__first_name")
+        page = self.paginate_queryset(students)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
         serializer = self.get_serializer(students, many=True)
         return Response(serializer.data)
 
@@ -89,9 +103,12 @@ class StudentViewSet(viewsets.ModelViewSet):
              return Response({"detail": "Vous n’êtes pas un enseignant."}, status=403)
         
         students = self.get_queryset().order_by("user__last_name", "user__first_name")
+        page = self.paginate_queryset(students)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
         serializer = self.get_serializer(students, many=True)
         return Response(serializer.data)
-
 
 # ------------------------------------------------------------------
 # PARENT CRUD
@@ -230,7 +247,111 @@ class TeacherRegisterView(generics.CreateAPIView):
             "access": str(refresh.access_token)
         }, status=status.HTTP_201_CREATED)
 
+# ajoute dans StudentViewSet (par ex. juste avant les actions by_class/by_teacher)
+import csv
+import io
+from django.db import transaction
+from rest_framework.parsers import MultiPartParser, FormParser
 
+@action(detail=False, methods=["post"], url_path="import-csv", parser_classes=[MultiPartParser, FormParser])
+def import_csv(self, request):
+    """
+    Endpoint: POST /api/core/admin/students/import-csv/
+    Attends un fichier multipart form field 'file' (csv ou xlsx).
+    Retour: { total_rows: int, results: [ { row: int, success: bool, student_id?, username?, error? } ] }
+    """
+    uploaded = request.FILES.get("file")
+    if not uploaded:
+        return Response({"detail": "Aucun fichier envoyé."}, status=400)
+
+    # Lire CSV ou XLSX
+    rows = []
+    name = uploaded.name.lower()
+    try:
+        if name.endswith(".csv") or name.endswith(".txt"):
+            # lecture textuelle, detect encoding reliably
+            raw = uploaded.read()
+            try:
+                text = raw.decode("utf-8-sig")
+            except Exception:
+                try:
+                    text = raw.decode("cp1252")
+                except Exception:
+                    text = raw.decode("utf-8", "ignore")
+            reader = csv.DictReader(io.StringIO(text))
+            for r in reader:
+                rows.append(r)
+        elif name.endswith(".xlsx") or name.endswith(".xls"):
+            # openpyxl
+            try:
+                import openpyxl
+            except ImportError:
+                return Response({"detail": "openpyxl requis pour lire les fichiers xlsx. Installer le package."}, status=500)
+            wb = openpyxl.load_workbook(uploaded, read_only=True, data_only=True)
+            ws = wb.active
+            # lire header
+            it = ws.iter_rows(values_only=True)
+            header = [str(h).strip() for h in next(it)]
+            for ridx, row in enumerate(it, start=2):
+                obj = {}
+                for ci, cell in enumerate(row):
+                    key = header[ci] if ci < len(header) else f"col{ci}"
+                    obj[key] = cell
+                rows.append(obj)
+        else:
+            return Response({"detail": "Format de fichier non supporté (autorisé: .csv, .xlsx)."}, status=400)
+    except Exception as exc:
+        return Response({"detail": f"Erreur lecture fichier: {str(exc)}"}, status=400)
+
+    results = []
+    total = len(rows)
+
+    # pour chaque ligne, on crée un payload conforme à StudentSerializer expected shape
+    for idx, r in enumerate(rows, start=1):
+        # Normaliser clés (ex: firstname / first_name)
+        # Tu peux adapter selon ton template exact
+        first_name = (r.get("first_name") or r.get("firstname") or r.get("prénom") or r.get("prenom") or "").strip()
+        last_name = (r.get("last_name") or r.get("lastname") or r.get("nom") or "").strip()
+        email = (r.get("email") or "").strip()
+        dob = (r.get("date_of_birth") or r.get("dob") or r.get("date") or "").strip()
+        sex = (r.get("sex") or r.get("gender") or "").strip()
+        school_class_id = (r.get("school_class") or r.get("school_class_id") or r.get("class") or "").strip()
+        parent_id = (r.get("parent_id") or r.get("parent") or "").strip()
+        password = (r.get("password") or r.get("passwd") or "mdpdefault").strip()
+
+        # create username fallback: prenom.nom (lower, ascii simplifié)
+        if email:
+            username = email.split("@")[0]
+        else:
+            uname = f"{first_name}.{last_name}".strip().lower().replace(" ", ".")
+            username = uname or f"user{idx}"
+
+        payload = {
+            "user": {
+                "username": username,
+                "email": email or f"{username}@example.local",
+                "first_name": first_name,
+                "last_name": last_name,
+                "password": password,
+            },
+            "date_of_birth": dob or None,
+            "sex": sex or "M",
+            "school_class_id": school_class_id or None,
+            "parent_id": parent_id or None,
+        }
+
+        try:
+            with transaction.atomic():
+                serializer = StudentSerializer(data=payload)
+                serializer.is_valid(raise_exception=True)
+                student = serializer.save()
+            results.append({"row": idx, "success": True, "student_id": student.id, "username": student.user.username})
+        except Exception as e:
+            # capture l'erreur et continue
+            results.append({"row": idx, "success": False, "error": str(e), "username": username})
+            continue
+
+    return Response({"total_rows": total, "results": results}, status=200)
 # ------------------------------------------------------------------
 # PROFILE VIEW (connected user)
 # ------------------------------------------------------------------
