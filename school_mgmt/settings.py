@@ -117,7 +117,7 @@ CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
+    "http://localhost:5173", "https://scol360.netlify.app",
 ]
 
 # Allow common headers; removed ngrok-specific headers
