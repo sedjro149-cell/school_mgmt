@@ -159,49 +159,39 @@ class LevelViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
 
 
-# ----------------------------
-# SCHOOL CLASSES
-# ----------------------------
 class SchoolClassViewSet(viewsets.ModelViewSet):
-    # ... tes paramètres ...
     queryset = SchoolClass.objects.all()
     serializer_class = SchoolClassSerializer
     permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
+    
+    # --- DÉSACTIVATION DE LA PAGINATION POUR CE VIEWSET ---
+    pagination_class = None 
 
     def get_queryset(self):
         user = self.request.user
-        
-        # On prépare la requête de base
-        qs = SchoolClass.objects.all()
+        # Optimisation : prefetch_related pour booster les performances
+        qs = SchoolClass.objects.prefetch_related(
+            'students__user', 
+            'teachers__user'
+        )
 
-        # Optimisation : On charge les profs et les élèves en une seule fois
-        # "teacher_set" correspond au nom de la relation inverse (à adapter si related_name existe)
-        qs = qs.prefetch_related('students', 'students__user', 'teachers', 'teachers__user')
-        # --- Cas admin ---
         if user.is_staff or user.is_superuser:
             return qs
 
-        # --- Cas enseignant ---
+        # Cas enseignant : On vérifie si l'utilisateur est lié à la classe
         if hasattr(user, "teacher"):
-            teacher = user.teacher
-            return qs.filter(teacher_set=teacher) # Filtre plus efficace
+            # Note : utilise le related_name défini dans ton modèle (souvent 'classes')
+            return qs.filter(teachers=user.teacher)
 
-        # --- Cas parent ---
+        # Cas parent
         if hasattr(user, "parent"):
-            parent = user.parent
-            if not parent:
-                return qs.none()
-            return qs.filter(students__parent=parent).distinct()
+            return qs.filter(students__parent=user.parent).distinct()
 
-        # --- Cas élève ---
+        # Cas élève
         if hasattr(user, "student"):
-            student = user.student
-            if not student:
-                return qs.none()
-            return qs.filter(students=student)
+            return qs.filter(students=user.student)
 
         return qs.none()
-
 # ----------------------------
 # SUBJECTS
 # ----------------------------
@@ -209,6 +199,7 @@ class SubjectViewSet(viewsets.ModelViewSet):
     queryset = Subject.objects.all()
     serializer_class = SubjectSerializer
     permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
+    pagination_class = None
 
 
 # ----------------------------
@@ -225,6 +216,7 @@ class ClassSubjectViewSet(viewsets.ModelViewSet):
     queryset = ClassSubject.objects.all()
     serializer_class = ClassSubjectSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
     # FILTRAGE DE BASE
     def get_queryset(self):
@@ -354,6 +346,7 @@ class GradeViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
     filter_backends = [DjangoFilterBackend]
     filterset_class = GradeFilter
+    pagination_class = None
 
     # ... get_queryset stays the same ...
 
@@ -569,84 +562,107 @@ class ClassScheduleEntryViewSet(viewsets.ModelViewSet):
         return ClassScheduleEntry.objects.none()
 
 
-# --- 2. VIEWSET DE LECTURE OPTIMISÉ (POUR L'AFFICHAGE EMPLOI DU TEMPS) ---
+# academics/views.py  (ou le fichier où est définie la view)
+from django.db.models import Q
+from rest_framework import viewsets, filters
+from rest_framework.permissions import IsAuthenticated
+from django_filters.rest_framework import DjangoFilterBackend
+
+from .models import ClassScheduleEntry
+from .serializers import ClassScheduleEntrySerializer
+
+
 class TimetableViewSet(viewsets.ReadOnlyModelViewSet):
     """
     End-point read-only optimisé pour l'affichage (Calendrier).
-    Gère les permissions complexes (Qui a le droit de voir l'emploi du temps de qui).
+    - Pagination désactivée (pagination_class = None) : renvoie un array direct (comme avant).
+    - Queryset pré-optimisé (select_related).
+    - Logique d'accès : admin = tout, parent = classes des enfants, étudiant = sa classe,
+      enseignant = ses cours OR classes où il enseigne.
+    - Accepts query params: class_id / school_class, teacher_id / teacher, weekday.
     """
-    queryset = ClassScheduleEntry.objects.select_related("school_class", "subject", "teacher__user")
+    # IMPORTANT : désactive la pagination pour ce ViewSet (retournera un array)
+    pagination_class = None
+
+    queryset = ClassScheduleEntry.objects.select_related(
+        "school_class",
+        "subject",
+        "teacher__user",
+    ).all()
     serializer_class = ClassScheduleEntrySerializer
     permission_classes = [IsAuthenticated]
 
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ["school_class", "teacher", "weekday"] # Filtres automatiques simples
-    search_fields = ["school_class__name", "subject__name", "teacher__user__last_name"]
+    filterset_fields = ["school_class", "teacher", "weekday"]
+    search_fields = ["school_class__name", "subject__name", "teacher__user__last_name", "teacher__user__first_name"]
     ordering_fields = ["weekday", "starts_at"]
 
     def get_queryset(self):
-        # On part du QuerySet optimisé (select_related)
         qs = super().get_queryset()
         user = self.request.user
         params = self.request.query_params
 
         # --- A. LOGIQUE DE SÉCURITÉ (Qui peut voir quoi ?) ---
-        allowed_class_ids = set()
-        has_full_access = False
-
+        # Admin / staff : accès complet
         if user.is_staff or user.is_superuser:
             has_full_access = True
-        
-        elif hasattr(user, "student") and user.student.school_class:
-            allowed_class_ids.add(user.student.school_class.id)
-            
-        elif hasattr(user, "parent"):
-            # Récupérer les classes de tous les enfants du parent
-            child_classes = user.parent.students.values_list('school_class_id', flat=True)
-            allowed_class_ids.update(child_classes)
-            
-        elif hasattr(user, "teacher"):
-            # Un prof voit les classes où il enseigne + ses propres cours
-            # 1. Ses propres cours (filtré plus bas par teacher_id ou implicite)
-            # 2. Les classes entières où il intervient (optionnel, selon ta politique)
-            pass 
-        
-        # Si ce n'est pas un admin, on pré-filtre
+        else:
+            has_full_access = False
+
+        # Build allowed class ids for parent/student
+        allowed_class_ids = set()
         if not has_full_access:
-            # Si c'est un prof, il peut voir tous les cours où il est prof
+            if hasattr(user, "student") and getattr(user.student, "school_class", None):
+                allowed_class_ids.add(user.student.school_class.id)
+
+            if hasattr(user, "parent"):
+                child_classes = list(user.parent.students.values_list("school_class_id", flat=True))
+                allowed_class_ids.update([c for c in child_classes if c is not None])
+
+        # Apply role-based restrictions
+        if not has_full_access:
             if hasattr(user, "teacher"):
-                 qs = qs.filter(teacher=user.teacher)
-                 # Note: Si tu veux qu'un prof voie TOUT l'emploi du temps de sa classe, 
-                 # il faut ajouter la logique ici.
+                # Teacher: allow entries where teacher is the teacher OR entries for classes the teacher teaches
+                teacher = user.teacher
+                teacher_class_ids = list(teacher.classes.values_list("id", flat=True))
+                qs = qs.filter(Q(teacher=teacher) | Q(school_class__id__in=teacher_class_ids)).distinct()
             else:
-                # Élèves / Parents : restreint aux classes autorisées
+                # Parent / Student: restrict to allowed_class_ids
                 if not allowed_class_ids:
                     return qs.none()
                 qs = qs.filter(school_class__id__in=allowed_class_ids)
 
         # --- B. FILTRES MANUELS ROBUSTES (Query Params) ---
-        
-        # 1. Filtre par Classe (ID ou Nom)
+        # 1. Filtre par Classe (ID ou Name)
         class_param = params.get("class_id") or params.get("school_class")
         if class_param:
-            if class_param.isdigit():
+            # if numeric -> id, else match name (case-insensitive)
+            if str(class_param).isdigit():
                 qs = qs.filter(school_class__id=int(class_param))
             else:
                 qs = qs.filter(school_class__name__iexact=class_param)
 
         # 2. Filtre par Prof (ID)
         teacher_param = params.get("teacher_id") or params.get("teacher")
-        if teacher_param and teacher_param.isdigit():
-            qs = qs.filter(teacher__id=int(teacher_param))
+        if teacher_param:
+            if str(teacher_param).isdigit():
+                qs = qs.filter(teacher__id=int(teacher_param))
+            else:
+                # allow filtering by teacher username or last_name if needed
+                qs = qs.filter(
+                    Q(teacher__user__username__iexact=teacher_param) |
+                    Q(teacher__user__last_name__iexact=teacher_param)
+                )
 
         # 3. Filtre par Jour (Weekday)
         weekday = params.get("weekday")
-        if weekday is not None:
+        if weekday is not None and weekday != "":
             try:
                 qs = qs.filter(weekday=int(weekday))
-            except ValueError:
-                pass # Ignorer si format invalide
+            except (ValueError, TypeError):
+                pass  # ignore invalid values
 
+        # final ordering
         return qs.order_by("weekday", "starts_at")
 # ----------------------------
 # REPORT CARDS
@@ -794,6 +810,7 @@ class DailyAttendanceSheetView(APIView):
         })
 class ReportCardViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
     # --- Helpers pour récupérer les modèles proprement ---
     @property
@@ -1280,18 +1297,29 @@ class SubjectCommentViewSet(viewsets.ModelViewSet):
 # ----------------------------
 # TIMESLOTS
 # ----------------------------
+from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated
+
 class TimeSlotViewSet(viewsets.ModelViewSet):
-    queryset = TimeSlot.objects.all()
+    """
+    Gestion des créneaux horaires.
+    Pagination désactivée (retourne toujours un tableau complet).
+    """
+    pagination_class = None  # 🔥 Désactive la pagination pour cet endpoint
+
+    queryset = TimeSlot.objects.all().order_by("start_time")
     serializer_class = TimeSlotSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
-        if user.is_staff or user.is_superuser:
-            return TimeSlot.objects.all()
-        # Ici, tu peux filtrer par classe si nécessaire
-        return TimeSlot.objects.none()
 
+        if user.is_staff or user.is_superuser:
+            return self.queryset
+
+        # Si plus tard tu veux filtrer par école / classe,
+        # ajoute la logique ici.
+        return TimeSlot.objects.none()
 
 # ----------------------------
 # GENERATE TIMETABLE (API)
@@ -1346,28 +1374,25 @@ from .models import ClassScheduleEntry
 from .serializers import ClassScheduleEntrySerializer
 
 
+from rest_framework import viewsets, filters
+from rest_framework.permissions import IsAuthenticated
+from django_filters.rest_framework import DjangoFilterBackend
+from .models import ClassScheduleEntry
+from .serializers import ClassScheduleEntrySerializer
+
 class TimetableViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    End-point read-only pour les emplois du temps.
-    Supporte:
-      - ?class_id= / ?school_class= / ?school_class_id=
-      - ?teacher_id= / ?teacher=
-      - ?level_id=
-      - ?weekday=
-    + search (SearchFilter) et ordering (OrderingFilter)
-    + filterset_fields pour usage de django-filter côté client.
-
-    Règles d'accès :
-      - staff / superuser : voient tout
-      - étudiant : uniquement sa classe
-      - parent : classes de tous ses enfants
-      - enseignant : uniquement les classes où il intervient
+    ViewSet pour les emplois du temps.
+    Désactivation explicite de la pagination pour garantir que le frontend 
+    reçoive la liste complète des cours sans avoir à gérer les pages.
     """
     queryset = ClassScheduleEntry.objects.select_related("school_class", "subject", "teacher")
     serializer_class = ClassScheduleEntrySerializer
     permission_classes = [IsAuthenticated]
+    
+    # --- CRITIQUE : Désactive la pagination globale pour cet endpoint ---
+    pagination_class = None 
 
-    # backends
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ["school_class", "teacher", "weekday", "school_class__level"]
     search_fields = ["school_class__name", "subject__name", "teacher__user__last_name", "teacher__user__first_name"]
@@ -1378,161 +1403,70 @@ class TimetableViewSet(viewsets.ReadOnlyModelViewSet):
         params = self.request.query_params
         user = self.request.user
 
-        # ---------- Debug visible (utile en dev) ----------
-        print("== TIMETABLE DEBUG raw QUERY_STRING ==", self.request.META.get("QUERY_STRING"))
-        print("== TIMETABLE DEBUG get_full_path ==", self.request.get_full_path())
-        print("== TIMETABLE DEBUG query_params dict ==", dict(params))
-
         def clean_val(v):
-            if v is None:
+            if v is None or v == "undefined" or v == "":
                 return None
             s = str(v).strip()
-            while s.endswith('/'):
-                s = s[:-1]
-            return s
+            return s.rstrip('/')
 
-        # accept multiple possible param names (robuste)
-        class_id_raw = params.get("class_id") or params.get("school_class") or params.get("school_class_id")
-        teacher_id_raw = params.get("teacher_id") or params.get("teacher")
-        level_id_raw = params.get("level_id") or params.get("school_class__level")
-        weekday_raw = params.get("weekday")
+        # Paramètres acceptés
+        class_id = clean_val(params.get("class_id") or params.get("school_class") or params.get("school_class_id"))
+        teacher_id = clean_val(params.get("teacher_id") or params.get("teacher"))
+        level_id = clean_val(params.get("level_id") or params.get("school_class__level"))
+        weekday = clean_val(params.get("weekday"))
 
-        class_id = clean_val(class_id_raw)
-        teacher_id = clean_val(teacher_id_raw)
-        level_id = clean_val(level_id_raw)
-        weekday = clean_val(weekday_raw)
+        # --- Gestion des droits d'accès ---
+        allowed_class_ids = None
 
-        print("== TIMETABLE DEBUG cleaned params ==", {
-            "class_id": class_id,
-            "teacher_id": teacher_id,
-            "level_id": level_id,
-            "weekday": weekday
-        })
-
-        # ---------- Calculer périmètre autorisé (school_class ids) ----------
-        allowed_class_ids = None  # None = "tout" (admin)
-
-        # Admins voient tout
         if user.is_staff or user.is_superuser:
-            allowed_class_ids = None
-
-        # Étudiant -> uniquement sa classe
+            allowed_class_ids = None # Accès total
         elif hasattr(user, "student") and getattr(user.student, "school_class_id", None):
             allowed_class_ids = {user.student.school_class_id}
-
-        # Parent -> classes de tous ses enfants
         elif hasattr(user, "parent"):
             allowed_class_ids = set(user.parent.students.values_list('school_class_id', flat=True).distinct())
-
-        # Teacher -> essayer plusieurs stratégies pour récupérer les classes qu'il enseigne
         elif hasattr(user, "teacher"):
-            teacher = user.teacher
+            teacher_obj = user.teacher
             allowed_class_ids = set()
-            # 1) relation teacher.classes (M2M) s'il existe
             try:
-                classes_qs = teacher.classes.all()
-                if classes_qs.exists():
-                    allowed_class_ids.update(classes_qs.values_list("pk", flat=True))
-            except Exception:
-                # ignore si la relation n'existe pas
+                allowed_class_ids.update(teacher_obj.classes.values_list("pk", flat=True))
+            except:
                 pass
-
-            # 2) fallback : regarder les entrées d'emploi du temps existantes signées par ce teacher
-            if not allowed_class_ids:
-                try:
-                    allowed_class_ids.update(
-                        ClassScheduleEntry.objects.filter(teacher=teacher)
-                        .values_list("school_class_id", flat=True)
-                        .distinct()
-                    )
-                except Exception:
-                    pass
-
-            # si on n'a vraiment rien, allowed_class_ids restera set() -> aucune autorisation
-
+            # Fallback sur les entrées de cours existantes
+            allowed_class_ids.update(
+                ClassScheduleEntry.objects.filter(teacher=teacher_obj).values_list("school_class_id", flat=True).distinct()
+            )
         else:
-            # Utilisateur anonyme / autre rôle : aucune classe autorisée
             allowed_class_ids = set()
 
-        print("== TIMETABLE DEBUG allowed_class_ids =", allowed_class_ids if allowed_class_ids is not None else "ALL")
+        # Application du périmètre de sécurité
+        if allowed_class_ids is not None:
+            if not allowed_class_ids:
+                return qs.none()
+            qs = qs.filter(school_class_id__in=list(allowed_class_ids))
 
-        # ---------- Appliquer les filtres fournis, mais en intersectant avec allowed_class_ids ----------
-        # Handle class_id param (int or name)
+        # Application des filtres utilisateur dynamiques
         if class_id:
-            try:
-                class_pk = int(class_id)
-                if allowed_class_ids is not None and class_pk not in allowed_class_ids:
-                    # l'utilisateur demande une classe qu'il n'est pas autorisé à voir
-                    return qs.none()
-                qs = qs.filter(school_class_id=class_pk)
-                print(f"== TIMETABLE DEBUG applied filter school_class_id={class_pk}")
-            except Exception:
-                # treat as name
-                if allowed_class_ids is not None:
-                    qs = qs.filter(school_class__id__in=list(allowed_class_ids), school_class__name=class_id)
-                else:
-                    qs = qs.filter(school_class__name=class_id)
-                print(f"== TIMETABLE DEBUG applied filter school_class__name='{class_id}'")
-            print("== TIMETABLE DEBUG count after class filter =", qs.count())
-        else:
-            # si pas de class_id fourni, restreindre globalement si nécessaire
-            if allowed_class_ids is not None:
-                if len(allowed_class_ids) == 0:
-                    return qs.none()
-                qs = qs.filter(school_class_id__in=list(allowed_class_ids))
-                print("== TIMETABLE DEBUG applied allowed_class_ids restriction")
+            if class_id.isdigit():
+                qs = qs.filter(school_class_id=int(class_id))
+            else:
+                qs = qs.filter(school_class__name__icontains=class_id)
 
-        # teacher_id filter
         if teacher_id:
-            try:
-                tpk = int(teacher_id)
-                # si user est teacher, n'autorise que sa propre pk
-                if hasattr(user, "teacher") and (user.teacher.pk != tpk):
-                    return qs.none()
-                qs = qs.filter(teacher_id=tpk)
-                print(f"== TIMETABLE DEBUG applied filter teacher_id={tpk}")
-            except Exception:
-                # string/username case
-                if hasattr(user, "teacher"):
-                    # teacher cannot impersonate another teacher -> restrict to self
-                    qs = qs.filter(teacher_id=user.teacher.pk)
-                    print("== TIMETABLE DEBUG teacher requested a teacher string but user is teacher -> restricted to self")
-                else:
-                    # try lookup by username
-                    qs = qs.filter(teacher__user__username=teacher_id)
-                    print(f"== TIMETABLE DEBUG applied filter teacher__user__username='{teacher_id}'")
-            print("== TIMETABLE DEBUG count after teacher filter =", qs.count())
+            if teacher_id.isdigit():
+                qs = qs.filter(teacher_id=int(teacher_id))
+            else:
+                qs = qs.filter(teacher__user__username=teacher_id)
 
-        # level filter (honored but still confined by allowed classes)
         if level_id:
-            try:
-                v = int(level_id)
-                qs = qs.filter(school_class__level_id=v)
-                print(f"== TIMETABLE DEBUG applied filter level_id={v}")
-            except Exception:
-                qs = qs.filter(school_class__level__name=level_id)
-                print(f"== TIMETABLE DEBUG applied filter level__name='{level_id}'")
-            print("== TIMETABLE DEBUG count after level filter =", qs.count())
+            if level_id.isdigit():
+                qs = qs.filter(school_class__level_id=int(level_id))
+            else:
+                qs = qs.filter(school_class__level__name__icontains=level_id)
 
-        # weekday filter
-        if weekday:
-            try:
-                v = int(weekday)
-                qs = qs.filter(weekday=v)
-                print(f"== TIMETABLE DEBUG applied filter weekday={v}")
-            except Exception:
-                print("== TIMETABLE DEBUG invalid weekday filter (ignored) =", weekday)
-            print("== TIMETABLE DEBUG count after weekday filter =", qs.count())
+        if weekday and weekday.isdigit():
+            qs = qs.filter(weekday=int(weekday))
 
-        # Final SQL for inspection
-        try:
-            print("== TIMETABLE DEBUG final SQL ==", str(qs.query))
-        except Exception as e:
-            print("== TIMETABLE DEBUG error building SQL ==", e)
-
-        print("== TIMETABLE DEBUG final count =", qs.count())
-        return qs.order_by("weekday", "starts_at")
-
+        return qs.order_by("weekday", "starts_at") 
 # Ajoute en haut de academics/views.py
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated

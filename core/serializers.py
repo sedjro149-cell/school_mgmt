@@ -1,26 +1,25 @@
-# core/serializers.py
-
 from django.contrib.auth import get_user_model
 from django.db import transaction, IntegrityError
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
+import logging
 
 # Project imports
 from .models import Parent, Student, Teacher
 from academics.models import SchoolClass, ClassScheduleEntry, Subject
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
-# ==============================================================================
+
+# ========================================================================
 # 1. SIMPLE SERIALIZERS (Helpers pour éviter la récursion et charger vite)
-# ==============================================================================
-
+# ========================================================================
 class UserSimpleSerializer(serializers.ModelSerializer):
     """Pour l'affichage léger des infos utilisateur."""
     class Meta:
         model = User
         fields = ("username", "first_name", "last_name", "email")
-        read_only = True
 
 
 class SchoolClassSimpleSerializer(serializers.ModelSerializer):
@@ -28,7 +27,6 @@ class SchoolClassSimpleSerializer(serializers.ModelSerializer):
     class Meta:
         model = SchoolClass
         fields = ("id", "name", "level")
-        read_only = True
 
 
 class SubjectSimpleSerializer(serializers.ModelSerializer):
@@ -36,13 +34,11 @@ class SubjectSimpleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subject
         fields = ("id", "name")
-        read_only = True
 
 
-# ==============================================================================
+# ========================================================================
 # 2. USER SERIALIZER (Base)
-# ==============================================================================
-
+# ========================================================================
 class UserSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(read_only=True)
     password = serializers.CharField(write_only=True, required=False)
@@ -61,20 +57,23 @@ class UserSerializer(serializers.ModelSerializer):
         return user
 
     def update(self, instance, validated_data):
+        """
+        IMPORTANT: on sauvegarde toujours l'instance après mise à jour des champs.
+        Avant : on sauvait seulement quand password était présenté -> changements non persistés.
+        """
         password = validated_data.pop("password", None)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
-        
         if password:
             instance.set_password(password)
-            instance.save()
+        # save ALWAYS to persist first_name / last_name / email changes
+        instance.save()
         return instance
 
 
-# ==============================================================================
+# ========================================================================
 # 3. PARENT SERIALIZERS
-# ==============================================================================
-
+# ========================================================================
 class StudentInParentSerializer(serializers.ModelSerializer):
     """
     Optimisé pour la liste des enfants dans l'objet Parent.
@@ -89,12 +88,12 @@ class StudentInParentSerializer(serializers.ModelSerializer):
 
 
 class ParentSerializer(serializers.ModelSerializer):
-    # Nested Write : On crée le User en même temps que le Parent
+    # Nested Write : On crée le User en même temps que le Parent (via payload)
     user = UserSerializer()
-    
-    # Nested Read : On affiche les enfants directement
+
+    # Nested Read : On affiche les enfants directement (léger)
     students = StudentInParentSerializer(many=True, read_only=True)
-    
+
     # Champs pratiques
     first_name = serializers.CharField(source="user.first_name", read_only=True)
     last_name = serializers.CharField(source="user.last_name", read_only=True)
@@ -105,13 +104,17 @@ class ParentSerializer(serializers.ModelSerializer):
         fields = ("id", "user", "first_name", "last_name", "phone", "students", "students_count")
 
     def get_students_count(self, obj):
-        # Utilise le prefetch s'il existe, sinon compte DB
-        if hasattr(obj, "students"):
-            try:
-                return len(obj.students.all())
-            except Exception:
-                pass
-        return obj.students.count()
+        """
+        Utiliser le cache de prefetch (si présent) pour éviter une requête supplémentaire.
+        """
+        prefetch_cache = getattr(obj, "_prefetched_objects_cache", None)
+        if prefetch_cache and "students" in prefetch_cache:
+            return len(prefetch_cache["students"])
+        try:
+            return obj.students.count()
+        except Exception as e:
+            logger.exception("get_students_count error for Parent %s: %s", getattr(obj, "id", "?"), str(e))
+            return 0
 
     def create(self, validated_data):
         user_data = validated_data.pop("user")
@@ -132,14 +135,13 @@ class ParentProfileSerializer(ParentSerializer):
     pass
 
 
-# ==============================================================================
+# ========================================================================
 # 4. STUDENT SERIALIZERS
-# ==============================================================================
-
+# ========================================================================
 class ParentSimpleSerializer(serializers.ModelSerializer):
     """Pour afficher le parent dans l'objet Student sans boucle infinie."""
     user = UserSimpleSerializer(read_only=True)
-    
+
     class Meta:
         model = Parent
         fields = ("id", "user", "phone")
@@ -147,46 +149,70 @@ class ParentSimpleSerializer(serializers.ModelSerializer):
 
 class StudentSerializer(serializers.ModelSerializer):
     # --- READ ONLY (Nested Representations) ---
-    # Ces champs seront remplis automatiquement grâce au select_related du ViewSet
-    user = UserSerializer()
+    # Rendre `user` read_only pour éviter la création implicite massive lors de list() sur gros volumes.
+    user = UserSerializer(read_only=True)
     school_class = SchoolClassSimpleSerializer(read_only=True)
     parent = ParentSimpleSerializer(read_only=True)
 
     # --- WRITE ONLY (IDs pour la création/modif) ---
+    user_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(),
+        source="user",
+        write_only=True,
+        required=False,
+        allow_null=True
+    )
     school_class_id = serializers.PrimaryKeyRelatedField(
-        queryset=SchoolClass.objects.all(), 
-        source="school_class", 
-        write_only=True, 
-        required=False, 
+        queryset=SchoolClass.objects.all(),
+        source="school_class",
+        write_only=True,
+        required=False,
         allow_null=True
     )
     parent_id = serializers.PrimaryKeyRelatedField(
-        queryset=Parent.objects.all(), 
-        source="parent", 
-        write_only=True, 
-        required=False, 
+        queryset=Parent.objects.all(),
+        source="parent",
+        write_only=True,
+        required=False,
         allow_null=True
     )
 
     class Meta:
         model = Student
         fields = (
-            "id", "user", "sex", "date_of_birth", 
-            "school_class", "school_class_id", 
+            "id", "user", "user_id", "sex", "date_of_birth",
+            "school_class", "school_class_id",
             "parent", "parent_id"
         )
 
     def create(self, validated_data):
-        user_data = validated_data.pop("user")
-        with transaction.atomic():
-            user = UserSerializer().create(validated_data=user_data)
-            student = Student.objects.create(user=user, **validated_data)
-        return student
+        """
+        Deux modes :
+         - payload contient 'user' nested -> création de l'utilisateur
+         - payload contient 'user_id' -> on associe l'utilisateur existant
+        """
+        user_data = validated_data.pop("user", None)  # dans le cas user_id, DRF a déjà mis user dans validated_data
+        try:
+            if user_data:
+                # création nested
+                user = UserSerializer().create(validated_data=user_data)
+            else:
+                # user peut déjà être présent (PrimaryKeyRelatedField), ou None
+                user = validated_data.get("user", None)
+            with transaction.atomic():
+                student = Student.objects.create(user=user, **{k: v for k, v in validated_data.items() if k != "user"})
+            return student
+        except Exception as e:
+            logger.exception("Student create failed: %s", str(e))
+            raise
 
     def update(self, instance, validated_data):
         user_data = validated_data.pop("user", None)
         if user_data:
-            UserSerializer().update(instance.user, user_data)
+            try:
+                UserSerializer().update(instance.user, user_data)
+            except Exception:
+                logger.exception("Failed updating nested user for Student %s", instance.pk)
         return super().update(instance, validated_data)
 
 
@@ -205,8 +231,8 @@ class StudentListSerializer(serializers.ModelSerializer):
 
     def get_parent_name(self, obj):
         # Accès sécurisé : si parent est None, on ne crash pas.
-        # Grâce au select_related('parent__user'), aucun appel DB ici.
-        if obj.parent and obj.parent.user:
+        # ATTENTION : s'assurer que la view fait select_related('parent__user') pour éviter requêtes supplémentaires.
+        if getattr(obj, "parent", None) and getattr(obj.parent, "user", None):
             return f"{obj.parent.user.last_name} {obj.parent.user.first_name}"
         return None
 
@@ -216,77 +242,76 @@ class StudentProfileSerializer(StudentSerializer):
     pass
 
 
-# ==============================================================================
+# ========================================================================
 # 5. TEACHER SERIALIZERS
-# ==============================================================================
-
+# ========================================================================
 class TeacherSerializer(serializers.ModelSerializer):
     user = UserSerializer()
-    
+
     # --- READ fields ---
     subject = SubjectSimpleSerializer(read_only=True)
     classes = SchoolClassSimpleSerializer(many=True, read_only=True)
-    
+
     # --- WRITE fields ---
     subject_id = serializers.PrimaryKeyRelatedField(
-        queryset=Subject.objects.all(), 
-        source="subject", 
-        write_only=True, 
-        required=False, 
+        queryset=Subject.objects.all(),
+        source="subject",
+        write_only=True,
+        required=False,
         allow_null=True
     )
     class_ids = serializers.PrimaryKeyRelatedField(
-        queryset=SchoolClass.objects.all(), 
-        source="classes", 
-        write_only=True, 
-        many=True, 
+        queryset=SchoolClass.objects.all(),
+        source="classes",
+        write_only=True,
+        many=True,
         required=False
     )
 
     class Meta:
         model = Teacher
         fields = (
-            "id", "user", "subject", "subject_id", 
+            "id", "user", "subject", "subject_id",
             "classes", "class_ids"
         )
 
     def create(self, validated_data):
         user_data = validated_data.pop("user")
-        classes = validated_data.pop("classes", []) # M2M handling
-        
+        classes = validated_data.pop("classes", [])  # M2M handling
+
         try:
             with transaction.atomic():
                 user = UserSerializer().create(validated_data=user_data)
                 teacher = Teacher.objects.create(user=user, **validated_data)
-                
+
                 if classes:
                     teacher.classes.set(classes)
                 return teacher
 
         except IntegrityError as e:
+            logger.exception("Teacher create integrity error: %s", str(e))
             raise ValidationError({"detail": "Erreur d'intégrité DB.", "error": str(e)})
 
     def update(self, instance, validated_data):
         user_data = validated_data.pop("user", None)
-        classes = validated_data.pop("classes", None) # None signifie "ne pas toucher"
+        classes = validated_data.pop("classes", None)  # None signifie "ne pas toucher"
 
         if user_data:
             UserSerializer().update(instance.user, user_data)
-        
+
         # Update standard fields
         super().update(instance, validated_data)
 
         # Update M2M si fourni
         if classes is not None:
             instance.classes.set(classes)
-        
+
         return instance
 
 
-# ==============================================================================
+# ========================================================================
 # 6. SCHEDULE UTILS
-# ==============================================================================
-
+# ========================================================================
 class ClassScheduleEntrySerializer(serializers.ModelSerializer):
     subject_name = serializers.CharField(source="subject.name", read_only=True)
 

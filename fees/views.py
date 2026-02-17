@@ -19,6 +19,7 @@ class FeeTypeViewSet(viewsets.ModelViewSet):
     queryset = FeeType.objects.all().order_by("name")
     serializer_class = FeeTypeSerializer
     permission_classes = [IsAdminUser]
+    pagination_class = None
     filter_backends = [DjangoFilterBackend, drf_filters.SearchFilter, drf_filters.OrderingFilter]
     filterset_class = FeeTypeFilter
     search_fields = ["name", "description"]
@@ -58,6 +59,7 @@ class FeeTypeAmountViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, drf_filters.OrderingFilter]
     filterset_class = FeeTypeAmountFilter
     ordering_fields = ["level__id", "amount", "fee_type__name"]
+    pagination_class = None
 
 
 from django.db import models
@@ -98,6 +100,7 @@ class FeeViewSet(viewsets.ModelViewSet):
 
     serializer_class = FeeSerializer
     permission_classes = [IsStudentOrParentOrAdmin]
+    pagination_class = None
 
     filter_backends = [DjangoFilterBackend, drf_filters.SearchFilter, drf_filters.OrderingFilter]
     filterset_class = FeeFilter
@@ -328,6 +331,7 @@ class PaymentViewSet(viewsets.ModelViewSet):
     queryset = Payment.objects.select_related("fee", "fee__fee_type", "fee__student", "fee__student__user", "validated_by").all()
     serializer_class = PaymentSerializer
     permission_classes = [IsStudentOrParentOrAdmin]
+    pagination_class = None
 
     filter_backends = [DjangoFilterBackend, drf_filters.SearchFilter, drf_filters.OrderingFilter]
     filterset_class = PaymentFilter
