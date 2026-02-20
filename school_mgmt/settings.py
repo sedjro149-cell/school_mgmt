@@ -41,7 +41,7 @@ def bool_from_env(key, default=False):
     return str(val).strip().lower() in ("1", "true", "yes", "on")
 
 # Default to False in prod-ready settings
-DEBUG = bool_from_env("DEBUG", default=True)
+DEBUG = bool_from_env("DEBUG", default=False)
 
 # In production ensure a proper SECRET_KEY is provided
 if not DEBUG:

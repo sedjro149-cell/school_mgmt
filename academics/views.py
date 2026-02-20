@@ -1,4 +1,4 @@
-<# academics/views.py
+# academics/views.py
 import json
 import logging
 import random
