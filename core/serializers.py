@@ -146,7 +146,81 @@ class ParentSimpleSerializer(serializers.ModelSerializer):
         model = Parent
         fields = ("id", "user", "phone")
 
+# --- Ajoute ceci DANS core/serializers.py (sous les serializers existants). ---
+from django.db import transaction
+from django.db.utils import IntegrityError
+from rest_framework import serializers
+import logging
 
+logger = logging.getLogger(__name__)
+
+# NOTE:
+# On suppose que dans ce même fichier existent déjà :
+# - UserSerializer (complet, utilisé pour write)
+# - UserSimpleSerializer (léger)
+# - StudentInParentSerializer (léger, read-only pour lister les enfants)
+# Si tu n'as pas ces noms EXACTS, adapte le nom local, mais normalement tu as déjà des variantes.
+
+class ParentOptimizedReadSerializer(serializers.ModelSerializer):
+    """
+    Serializer optimisé pour list/retrieve — lecture seule, nested léger pour user + students.
+    Utiliser dans les endpoints paginés / list pour renvoyer tout ce dont le front a besoin.
+    """
+    user = UserSerializer(read_only=True)  # user complet si besoin ; on peut remplacer par UserSimpleSerializer si on veut alléger
+    students = StudentInParentSerializer(many=True, read_only=True)
+
+    first_name = serializers.CharField(source="user.first_name", read_only=True)
+    last_name = serializers.CharField(source="user.last_name", read_only=True)
+    students_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Parent
+        fields = ("id", "user", "first_name", "last_name", "phone", "students", "students_count")
+
+    def get_students_count(self, obj):
+        # Utilise le cache de prefetch pour ne pas lancer de requête supplémentaire
+        prefetch_cache = getattr(obj, "_prefetched_objects_cache", None)
+        if prefetch_cache and "students" in prefetch_cache:
+            return len(prefetch_cache["students"])
+        try:
+            return obj.students.count()
+        except Exception as e:
+            logger.exception("get_students_count error for Parent %s: %s", getattr(obj, "id", "?"), str(e))
+            return 0
+
+
+class ParentOptimizedWriteSerializer(serializers.ModelSerializer):
+    """
+    Serializer pour create/update — accepte nested user pour créer/update l'objet User.
+    Ne touche pas à la relation students ici (gestion séparée).
+    """
+    user = UserSerializer()
+
+    class Meta:
+        model = Parent
+        fields = ("id", "user", "phone")
+
+    def create(self, validated_data):
+        user_data = validated_data.pop("user")
+        try:
+            with transaction.atomic():
+                user = UserSerializer().create(validated_data=user_data)
+                parent = Parent.objects.create(user=user, **validated_data)
+                return parent
+        except IntegrityError as e:
+            logger.exception("Parent create integrity error: %s", str(e))
+            raise serializers.ValidationError({"detail": "Erreur d'intégrité DB.", "error": str(e)})
+
+    def update(self, instance, validated_data):
+        user_data = validated_data.pop("user", None)
+        if user_data:
+            UserSerializer().update(instance.user, user_data)
+        return super().update(instance, validated_data)
+
+
+# Petite alias si tu veux l'exposer explicitement
+class ParentOptimizedProfileSerializer(ParentOptimizedReadSerializer):
+    pass
 class StudentSerializer(serializers.ModelSerializer):
     # --- READ ONLY (Nested Representations) ---
     # Rendre `user` read_only pour éviter la création implicite massive lors de list() sur gros volumes.
@@ -187,23 +261,37 @@ class StudentSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         """
-        Deux modes :
-         - payload contient 'user' nested -> création de l'utilisateur
-         - payload contient 'user_id' -> on associe l'utilisateur existant
+        Deux modes supportés :
+         - payload contient un dict 'user' (nested) -> on crée le User
+         - payload contient 'user' résolu (instance User, via user_id PK) -> on l'utilise
+         - sinon on tente de récupérer 'user' dans validated_data
         """
-        user_data = validated_data.pop("user", None)  # dans le cas user_id, DRF a déjà mis user dans validated_data
+        user_data = validated_data.pop("user", None)
+
         try:
-            if user_data:
-                # création nested
+            # Cas 1: user_data est déjà une instance User (PrimaryKeyRelatedField)
+            if user_data and isinstance(user_data, User):
+                user = user_data
+
+            # Cas 2: user_data est un dict (nested write)
+            elif user_data and isinstance(user_data, dict):
                 user = UserSerializer().create(validated_data=user_data)
+
+            # Cas 3: pas de 'user' poppé — DRF peut avoir mis l'instance dans validated_data['user']
             else:
-                # user peut déjà être présent (PrimaryKeyRelatedField), ou None
                 user = validated_data.get("user", None)
+
+            if user is None:
+                # Si ton modèle exige un user, lever une erreur claire
+                raise serializers.ValidationError("User data missing or invalid for Student creation.")
+
             with transaction.atomic():
                 student = Student.objects.create(user=user, **{k: v for k, v in validated_data.items() if k != "user"})
             return student
+
         except Exception as e:
             logger.exception("Student create failed: %s", str(e))
+            # Re-raise pour que DRF traite l'exception proprement (ou raise serializers.ValidationError si tu préfères)
             raise
 
     def update(self, instance, validated_data):
@@ -216,26 +304,20 @@ class StudentSerializer(serializers.ModelSerializer):
         return super().update(instance, validated_data)
 
 
+### Dans ton fichier serializers.py ###
+
 class StudentListSerializer(serializers.ModelSerializer):
     """
-    Version ultra-légère pour les listes (Dashboard, ListViews).
-    Optimisée pour le rendu rapide de milliers de lignes.
+    Version optimisée pour les listes, mais avec la structure attendue par le frontend.
     """
     user = UserSimpleSerializer(read_only=True)
-    school_class_name = serializers.CharField(source="school_class.name", read_only=True, default=None)
-    parent_name = serializers.SerializerMethodField()
+    # On utilise les serializers imbriqués au lieu de simples chaînes
+    school_class = SchoolClassSimpleSerializer(read_only=True)
+    parent = ParentSimpleSerializer(read_only=True)
 
     class Meta:
         model = Student
-        fields = ("id", "user", "sex", "date_of_birth", "school_class_name", "parent_name")
-
-    def get_parent_name(self, obj):
-        # Accès sécurisé : si parent est None, on ne crash pas.
-        # ATTENTION : s'assurer que la view fait select_related('parent__user') pour éviter requêtes supplémentaires.
-        if getattr(obj, "parent", None) and getattr(obj.parent, "user", None):
-            return f"{obj.parent.user.last_name} {obj.parent.user.first_name}"
-        return None
-
+        fields = ("id", "user", "sex", "date_of_birth", "school_class", "parent")
 
 class StudentProfileSerializer(StudentSerializer):
     """Identique au serializer complet pour l'instant."""
@@ -308,7 +390,77 @@ class TeacherSerializer(serializers.ModelSerializer):
 
         return instance
 
+from rest_framework import serializers
+from django.db import transaction
+from django.db.utils import IntegrityError
+import logging
 
+logger = logging.getLogger(__name__)
+
+class TeacherFullSerializer(serializers.ModelSerializer):
+    """
+    Serializer utilisé pour list/retrieve : renvoie tout (user, subject, classes) en nested
+    => front n'a plus à re-fetcher des ids.
+    """
+    user = UserSerializer(read_only=True)
+    subject = SubjectSimpleSerializer(read_only=True)
+    classes = SchoolClassSimpleSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Teacher
+        fields = ("id", "user", "subject", "classes")
+
+
+class TeacherWriteSerializer(serializers.ModelSerializer):
+    """
+    Serializer pour create/update (accepts related ids).
+    Garde la logique create/update que tu as déjà mais séparée pour éviter confusion
+    entre read-only nested fields et write PK fields.
+    """
+    user = UserSerializer()
+    subject_id = serializers.PrimaryKeyRelatedField(
+        queryset=Subject.objects.all(),
+        source="subject",
+        write_only=True,
+        required=False,
+        allow_null=True
+    )
+    class_ids = serializers.PrimaryKeyRelatedField(
+        queryset=SchoolClass.objects.all(),
+        source="classes",
+        write_only=True,
+        many=True,
+        required=False
+    )
+
+    class Meta:
+        model = Teacher
+        fields = ("id", "user", "subject_id", "class_ids")
+
+    def create(self, validated_data):
+        user_data = validated_data.pop("user")
+        classes = validated_data.pop("classes", [])
+        try:
+            with transaction.atomic():
+                user = UserSerializer().create(validated_data=user_data)
+                teacher = Teacher.objects.create(user=user, **validated_data)
+                if classes:
+                    teacher.classes.set(classes)
+                return teacher
+        except IntegrityError as e:
+            logger.exception("Teacher create integrity error: %s", str(e))
+            raise serializers.ValidationError({"detail": "Erreur d'intégrité DB.", "error": str(e)})
+
+    def update(self, instance, validated_data):
+        user_data = validated_data.pop("user", None)
+        classes = validated_data.pop("classes", None)  # None => ne pas toucher
+        if user_data:
+            UserSerializer().update(instance.user, user_data)
+        # update autres champs standards
+        super().update(instance, validated_data)
+        if classes is not None:
+            instance.classes.set(classes)
+        return instance
 # ========================================================================
 # 6. SCHEDULE UTILS
 # ========================================================================

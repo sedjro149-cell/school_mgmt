@@ -1310,6 +1310,7 @@ class TimeSlotViewSet(viewsets.ModelViewSet):
     queryset = TimeSlot.objects.all().order_by("start_time")
     serializer_class = TimeSlotSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
     def get_queryset(self):
         user = self.request.user

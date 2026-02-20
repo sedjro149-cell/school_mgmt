@@ -16,6 +16,8 @@ from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework_simplejwt.tokens import RefreshToken
+from .serializers import TeacherFullSerializer, TeacherWriteSerializer
+
 
 from django_filters.rest_framework import DjangoFilterBackend
 
@@ -89,7 +91,6 @@ class StudentViewSet(viewsets.ModelViewSet):
             return StudentProfileSerializer
         return StudentSerializer
 
-    # Import CSV action (placé DANS le ViewSet)
     @action(detail=False, methods=["post"], url_path="import-csv", parser_classes=[MultiPartParser, FormParser])
     def import_csv(self, request):
         """
@@ -103,6 +104,7 @@ class StudentViewSet(viewsets.ModelViewSet):
 
         rows = []
         name = uploaded.name.lower()
+
         try:
             if name.endswith(".csv") or name.endswith(".txt"):
                 raw = uploaded.read()
@@ -116,69 +118,214 @@ class StudentViewSet(viewsets.ModelViewSet):
                 reader = csv.DictReader(io.StringIO(text))
                 for r in reader:
                     rows.append(r)
+
             elif name.endswith(".xlsx") or name.endswith(".xls"):
                 try:
                     import openpyxl
                 except ImportError:
                     return Response({"detail": "openpyxl requis pour lire les fichiers xlsx. Installer le package."}, status=500)
+
                 wb = openpyxl.load_workbook(uploaded, read_only=True, data_only=True)
                 ws = wb.active
                 it = ws.iter_rows(values_only=True)
-                header = [str(h).strip() for h in next(it)]
+
+                header_row = next(it, None)
+                if not header_row:
+                    return Response({"detail": "Fichier Excel vide."}, status=400)
+
+                header = []
+                for i, h in enumerate(header_row):
+                    if h is None:
+                        header.append(f"col{i}")
+                    else:
+                        header.append(str(h).strip())
+
                 for ridx, row in enumerate(it, start=2):
                     obj = {}
                     for ci, cell in enumerate(row):
                         key = header[ci] if ci < len(header) else f"col{ci}"
                         obj[key] = cell
                     rows.append(obj)
+
             else:
                 return Response({"detail": "Format de fichier non supporté (autorisé: .csv, .xlsx)."}, status=400)
+
         except Exception as exc:
             logger.exception("Error reading uploaded file: %s", str(exc))
             return Response({"detail": f"Erreur lecture fichier: {str(exc)}"}, status=400)
 
+        # --- Helpers locaux -------------------------------------------------
+        def norm_cell(val):
+            """Retourne une string propre, gère None, float/int, date/datetime."""
+            if val is None:
+                return ""
+            import datetime as _dt
+            if isinstance(val, str):
+                return val.strip()
+            if isinstance(val, bool):
+                return str(val)
+            if isinstance(val, int):
+                return str(val)
+            if isinstance(val, float):
+                # si entier flottant (12.0) -> '12'
+                if val.is_integer():
+                    return str(int(val))
+                return str(val)
+            if isinstance(val, (_dt.date, _dt.datetime)):
+                return val.isoformat()
+            return str(val).strip()
+
+        def to_int_maybe(val):
+            """Essaie de convertir en int proprement, retourne None si impossible/vides."""
+            s = norm_cell(val)
+            if s == "":
+                return None
+            try:
+                f = float(s)
+                return int(f)
+            except Exception:
+                try:
+                    return int(s)
+                except Exception:
+                    return None
+
+        # get_or_create_user logic (local, safe)
+        def get_or_create_user_from_payload(user_payload):
+            """
+            user_payload: dict with keys username, email, first_name, last_name, password (may be None)
+            Returns: (user_instance, created_bool)
+            """
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            import time
+
+            username = (user_payload.get("username") or "").strip() or None
+            email = (user_payload.get("email") or "").strip() or None
+            first_name = (user_payload.get("first_name") or "").strip() or ""
+            last_name = (user_payload.get("last_name") or "").strip() or ""
+            password = user_payload.get("password") or None
+
+            # 1) try by username
+            user = None
+            if username:
+                user = User.objects.filter(username=username).first()
+
+            # 2) fallback by email
+            if not user and email:
+                user = User.objects.filter(email=email).first()
+
+            if user:
+                # non-destructive update des champs si manquants
+                changed = False
+                if first_name and user.first_name != first_name:
+                    user.first_name = first_name
+                    changed = True
+                if last_name and user.last_name != last_name:
+                    user.last_name = last_name
+                    changed = True
+                if email and user.email != email:
+                    user.email = email
+                    changed = True
+                if changed:
+                    user.save()
+                return user, False
+
+            # 3) create user
+            # ensure username exists
+            if not username:
+                if email:
+                    username = email.split("@")[0]
+                else:
+                    username = f"user_{int(time.time())}"
+
+            base = username
+            suffix = 0
+            while User.objects.filter(username=username).exists():
+                suffix += 1
+                username = f"{base}{suffix}"
+
+            if not password:
+                password = User.objects.make_random_password()
+
+            user = User.objects.create_user(
+                username=username,
+                email=email or "",
+                password=password,
+                first_name=first_name,
+                last_name=last_name,
+            )
+            return user, True
+
+        # -------------------------------------------------------------------
         results = []
         total = len(rows)
 
         for idx, r in enumerate(rows, start=1):
-            first_name = (r.get("first_name") or r.get("firstname") or r.get("prénom") or r.get("prenom") or "").strip()
-            last_name = (r.get("last_name") or r.get("lastname") or r.get("nom") or "").strip()
-            email = (r.get("email") or "").strip()
-            dob = (r.get("date_of_birth") or r.get("dob") or r.get("date") or "").strip()
-            sex = (r.get("sex") or r.get("gender") or "").strip()
-            school_class_id = (r.get("school_class") or r.get("school_class_id") or r.get("class") or "").strip()
-            parent_id = (r.get("parent_id") or r.get("parent") or "").strip()
-            password = (r.get("password") or r.get("passwd") or "mdpdefault").strip()
+            # Normalisation sûre des champs
+            first_name = norm_cell(r.get("first_name") or r.get("firstname") or r.get("prénom") or r.get("prenom"))
+            last_name = norm_cell(r.get("last_name") or r.get("lastname") or r.get("nom"))
+            email = norm_cell(r.get("email") or "")
+            dob = norm_cell(r.get("date_of_birth") or r.get("dob") or r.get("date") or "")
+            sex_raw = norm_cell(r.get("sex") or r.get("gender") or "")
+            sex = sex_raw.upper()[:1] if sex_raw else ""
+            school_class_id = to_int_maybe(r.get("school_class") or r.get("school_class_id") or r.get("class"))
+            parent_id = to_int_maybe(r.get("parent_id") or r.get("parent"))
+            password = norm_cell(r.get("password") or r.get("passwd") or "") or None
 
+            # username fallback
             if email:
                 username = email.split("@")[0]
             else:
                 uname = f"{first_name}.{last_name}".strip().lower().replace(" ", ".")
                 username = uname or f"user{idx}"
 
-            payload = {
-                "user": {
-                    "username": username,
-                    "email": email or f"{username}@example.local",
-                    "first_name": first_name,
-                    "last_name": last_name,
-                    "password": password,
-                },
-                "date_of_birth": dob or None,
-                "sex": sex or "M",
-                "school_class_id": school_class_id or None,
-                "parent_id": parent_id or None,
+            user_payload = {
+                "username": username,
+                "email": email or "",
+                "first_name": first_name,
+                "last_name": last_name,
+                "password": password,
             }
 
             try:
                 with transaction.atomic():
-                    serializer = StudentSerializer(data=payload)
-                    serializer.is_valid(raise_exception=True)
-                    student = serializer.save()
-                results.append({"row": idx, "success": True, "student_id": student.id, "username": student.user.username})
+                    # Ensure user exists (or create)
+                    user_obj, created_user = get_or_create_user_from_payload(user_payload)
+
+                    # Build student payload using user_id (serializer expects user via user_id write_only field)
+                    student_payload = {
+                        "user_id": user_obj.id,
+                        "date_of_birth": dob or None,
+                        "sex": sex or "M",
+                        "school_class_id": school_class_id,
+                        "parent_id": parent_id,
+                    }
+
+                    serializer = StudentSerializer(data=student_payload)
+                    try:
+                        serializer.is_valid(raise_exception=True)
+                        student = serializer.save()
+                        results.append({"row": idx, "success": True, "student_id": student.id, "username": student.user.username})
+                    except Exception as ser_exc:
+                        # Validation errors or other serializer exceptions
+                        logger.exception("Validation error row %s: %s", idx, str(ser_exc))
+                        # Try to extract serializer errors if present
+                        err_msg = None
+                        try:
+                            # If it's a DRF ValidationError, it may have detail attribute
+                            err_msg = getattr(ser_exc, "detail", None) or str(ser_exc)
+                        except Exception:
+                            err_msg = str(ser_exc)
+                        results.append({"row": idx, "success": False, "error": err_msg, "username": user_obj.username})
+                        # rollback transaction for this line
+                        raise
+
             except Exception as e:
-                logger.exception("CSV import row %s failed: %s", idx, str(e))
-                results.append({"row": idx, "success": False, "error": str(e), "username": username})
+                # Already logged above; ensure result exists in case of other exceptions
+                if not results or results[-1].get("row") != idx:
+                    logger.exception("CSV import row %s failed: %s", idx, str(e))
+                    results.append({"row": idx, "success": False, "error": str(e), "username": username})
+                # continue to next row (transaction ensures this row rolled back)
                 continue
 
         return Response({"total_rows": total, "results": results}, status=200)
@@ -194,7 +341,7 @@ class StudentViewSet(viewsets.ModelViewSet):
         # Pagination désactivée volontairement pour cette action
         serializer = self.get_serializer(students, many=True)
         return Response(serializer.data)
-        
+
     @action(detail=False, methods=["get"], url_path="by-teacher")
     def by_teacher(self, request):
         if not hasattr(request.user, "teacher"):
@@ -209,18 +356,78 @@ class StudentViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-# ------------------------------------------------------------------
-# PARENT CRUD
-# ------------------------------------------------------------------
+# --- Ajoute / remplace le ParentViewSet dans core/views.py ---
+from django.db.models import Prefetch
+from rest_framework import viewsets, filters
+from rest_framework.pagination import PageNumberPagination
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
+# modèles
+from core.models import Parent, Student
+from academics.models import SchoolClass   # classes & autres se trouvent dans academics
+
+# serializers (les nouveaux optimisés que tu as ajoutés plus haut)
+from core.serializers import (
+    ParentOptimizedReadSerializer,
+    ParentOptimizedWriteSerializer,
+)
+
+# permissions locales
+from core.permissions import IsParentOrReadOnly
+
+# pagination simple — garde la même que pour teachers
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = "page_size"
+    max_page_size = 100
+
+
 class ParentViewSet(viewsets.ModelViewSet):
+    """
+    ParentViewSet optimisé :
+    - pagination active
+    - recherche serveur-side (?search=)
+    - filtres via django-filter
+    - select_related / prefetch_related pour éviter N+1
+    - serializers read/write séparés (optimisés)
+    """
     queryset = Parent.objects.all()
-    serializer_class = ParentSerializer
     permission_classes = [IsAuthenticated, IsParentOrReadOnly]
 
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = {
+        "phone": ["exact", "icontains"],
+        "id": ["exact"],
+    }
+    # recherche sur user + phone + nom/prénom d'enfants et nom de la classe de l'enfant
+    search_fields = [
+        "user__first_name",
+        "user__last_name",
+        "user__username",
+        "user__email",
+        "phone",
+        "students__user__first_name",
+        "students__user__last_name",
+        "students__school_class__name",
+    ]
+    ordering_fields = ["user__last_name", "id", "phone"]
+    pagination_class = StandardResultsSetPagination
+
+    def get_serializer_class(self):
+        if self.action in ("create", "update", "partial_update", "destroy"):
+            return ParentOptimizedWriteSerializer
+        return ParentOptimizedReadSerializer
+
     def get_queryset(self):
+        """
+        Construire queryset optimisé : select_related user et prefetch students
+        avec student.user et student.school_class pour éviter N+1.
+        Appliquer permissions (admin vs parent connecté).
+        """
         user = self.request.user
 
-        # base queryset: select_related user (one-to-one) et prefetch students avec user + school_class
         base_qs = Parent.objects.all().select_related("user").prefetch_related(
             Prefetch(
                 "students",
@@ -229,31 +436,93 @@ class ParentViewSet(viewsets.ModelViewSet):
         )
 
         if user.is_staff or user.is_superuser:
-            return base_qs
+            qs = base_qs
+        elif hasattr(user, "parent"):
+            qs = base_qs.filter(user=user)
+        else:
+            qs = Parent.objects.none()
 
-        if hasattr(user, "parent"):
-            # pour le parent connecté, on renvoie uniquement son parent
-            return base_qs.filter(user=user)
+        return qs.distinct()
 
-        return Parent.objects.none()
+    # override list pour forcer paginated response claire (DRF fait ça déjà)
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
 
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
 
-# ------------------------------------------------------------------
-# TEACHER CRUD
-# ------------------------------------------------------------------
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
 class TeacherViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet optimisé :
+    - recherche instantanée via ?search=xxx (SearchFilter)
+    - filtrage via DjangoFilterBackend (ex: subject, classes)
+    - override paginate_queryset pour permettre ?no_pagination=1
+    - préfetch/select_related pour éviter N+1
+    - différents serializers pour read vs write
+    """
     queryset = Teacher.objects.all()
-    serializer_class = TeacherSerializer
     permission_classes = [IsAuthenticated, IsTeacherReadOnly]
+
+    # enable search & ordering & django-filter
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = {
+        "subject__id": ["exact"],
+        "classes__id": ["exact"],
+    }
+    # fields accessibles par ?search=...
+    search_fields = [
+        "user__first_name",
+        "user__last_name",
+        "user__username",
+        "subject__name",
+        "classes__name",
+    ]
+    ordering_fields = ["user__last_name", "subject__name", "id"]
+
+    # Default serializer (fallback)
+    serializer_class = TeacherFullSerializer
+
+    def get_serializer_class(self):
+        # Use write serializer for create/update/partial_update/destroy
+        if self.action in ("create", "update", "partial_update", "destroy"):
+            return TeacherWriteSerializer
+        # For list/retrieve and custom actions, return full nested serializer
+        return TeacherFullSerializer
 
     def get_queryset(self):
         user = self.request.user
-        if user.is_staff or user.is_superuser:
-            return Teacher.objects.all()
-        if hasattr(user, "teacher"):
-            return Teacher.objects.filter(user=user)
-        return Teacher.objects.none()
+        base_qs = Teacher.objects.all()
 
+        if user.is_staff or user.is_superuser:
+            qs = base_qs
+        elif hasattr(user, "teacher"):
+            qs = base_qs.filter(user=user)
+        else:
+            qs = Teacher.objects.none()
+
+        # Préfetch / select_related pour éviter N+1
+        qs = qs.select_related("user", "subject").prefetch_related(
+            Prefetch("classes", queryset=SchoolClass.objects.all())
+        ).distinct()
+
+        return qs
+
+    def paginate_queryset(self, queryset):
+        """
+        Permet de désactiver la pagination côté backend en ajoutant ?no_pagination=1
+        (utile quand ton front n'est pas prêt pour paginated response).
+        Si tu veux forcer pagination côté front, retire cette logique.
+        """
+        if self.request.query_params.get("no_pagination") == "1":
+            return None
+        return super().paginate_queryset(queryset)
+
+    # Keep your custom actions but reuse the optimized queryset & serializer
     @action(detail=False, methods=["get"], url_path=r"by-class/(?P<class_id>[^/.]+)")
     def by_class(self, request, class_id=None):
         user = request.user
@@ -272,7 +541,8 @@ class TeacherViewSet(viewsets.ModelViewSet):
         else:
             return Response({"detail": "Accès non autorisé."}, status=403)
 
-        serializer = self.get_serializer(teachers, many=True)
+        # Serializer & Response
+        serializer = self.get_serializer(teachers.prefetch_related("classes"), many=True)
         return Response(serializer.data)
 
     @action(detail=False, methods=["get"], url_path="by-level/(?P<level_id>[^/.]+)")
@@ -284,7 +554,6 @@ class TeacherViewSet(viewsets.ModelViewSet):
         teachers = Teacher.objects.filter(classes__level_id=level_id).distinct()
         serializer = self.get_serializer(teachers, many=True)
         return Response(serializer.data)
-
 
 # ------------------------------------------------------------------
 # REGISTER VIEWS (Parent / Student / Teacher)
