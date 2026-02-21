@@ -63,22 +63,39 @@ class SimpleTeacherSerializer(serializers.ModelSerializer):
         model = Teacher 
         fields = ['id', 'first_name', 'last_name', 'email'] # Ajoute 'subjects' ici si dispo
 # ---- SCHOOL CLASS ----
+from rest_framework import serializers
+from .models import SchoolClass, Level
+# NOTE: LevelSerializer, StudentSerializer, SimpleTeacherSerializer
+# doivent exister dans ce module ou être importés plus haut dans le fichier.
+
+class SchoolClassListSerializer(serializers.ModelSerializer):
+    """
+    Serializer léger pour la liste : conserve les mêmes noms de champs
+    que ton frontend attend (id, name, level).
+    Pas d'élèves, pas de profs.
+    """
+    level = LevelSerializer(read_only=True)
+
+    class Meta:
+        model = SchoolClass
+        fields = ["id", "name", "level"]
+
+
 class SchoolClassSerializer(serializers.ModelSerializer):
+    # --- version détaillée existante (inchangée pour le comportement actuel) ---
     level = LevelSerializer(read_only=True)
     level_id = serializers.PrimaryKeyRelatedField(
         queryset=Level.objects.all(), write_only=True, source="level"
     )
     students = serializers.SerializerMethodField()
-    # 1. On déclare le nouveau champ
     teachers = serializers.SerializerMethodField()
 
     class Meta:
         model = SchoolClass
-        # 2. On ajoute 'teachers' dans les fields
         fields = ["id", "name", "level", "level_id", "students", "teachers"]
 
     def get_students(self, obj):
-        # ... (Ton code existant pour get_students reste inchangé) ...
+        # logique inchangée fournie par toi
         request = self.context.get("request")
         if not request:
             return []
@@ -101,21 +118,10 @@ class SchoolClassSerializer(serializers.ModelSerializer):
             return []
         return []
 
-    # 3. La méthode pour récupérer les profs
     def get_teachers(self, obj):
-        """
-        Récupère tous les enseignants associés à cette classe.
-        """
-        # ATTENTION : La relation inverse dépend de ton modèle Teacher.
-        # Si dans Teacher tu as : classes = models.ManyToManyField(SchoolClass)
-        # Alors par défaut, c'est obj.teacher_set.all()
-        # Si tu as mis related_name='teachers', alors c'est obj.teachers.all()
-        
         try:
-            # Essaye d'abord la relation standard Django
             teachers_qs = obj.teacher_set.all()
         except AttributeError:
-            # Si related_name='teachers' est défini dans le modèle Teacher
             teachers_qs = obj.teachers.all()
 
         return SimpleTeacherSerializer(teachers_qs, many=True).data

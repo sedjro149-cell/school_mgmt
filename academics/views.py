@@ -159,39 +159,53 @@ class LevelViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
 
 
+from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated
+from .models import SchoolClass
+from .serializers import SchoolClassSerializer, SchoolClassListSerializer
+from .permissions import IsAdminOrReadOnly
+
 class SchoolClassViewSet(viewsets.ModelViewSet):
     queryset = SchoolClass.objects.all()
     serializer_class = SchoolClassSerializer
     permission_classes = [IsAuthenticated, IsAdminOrReadOnly]
-    
-    # --- DÉSACTIVATION DE LA PAGINATION POUR CE VIEWSET ---
-    pagination_class = None 
+
+    # --- DÉSACTIVATION DE LA PAGINATION POUR CE VIEWSET (comme demandé) ---
+    pagination_class = None
 
     def get_queryset(self):
         user = self.request.user
-        # Optimisation : prefetch_related pour booster les performances
-        qs = SchoolClass.objects.prefetch_related(
-            'students__user', 
-            'teachers__user'
+
+        # LIST : réponse légère (pas de prefetch students/teachers)
+        if self.action == "list":
+            # select_related level pour infos basiques, pas de prefetch des relations lourdes
+            return SchoolClass.objects.select_related("level").all()
+
+        # Autres actions (retrieve, update...) : précharge relations pour éviter N+1
+        qs = SchoolClass.objects.select_related("level").prefetch_related(
+            "students__user",
+            "teachers__user"
         )
 
         if user.is_staff or user.is_superuser:
             return qs
 
-        # Cas enseignant : On vérifie si l'utilisateur est lié à la classe
         if hasattr(user, "teacher"):
-            # Note : utilise le related_name défini dans ton modèle (souvent 'classes')
             return qs.filter(teachers=user.teacher)
 
-        # Cas parent
         if hasattr(user, "parent"):
             return qs.filter(students__parent=user.parent).distinct()
 
-        # Cas élève
         if hasattr(user, "student"):
             return qs.filter(students=user.student)
 
         return qs.none()
+
+    def get_serializer_class(self):
+        # list -> serializer léger ; sinon -> serializer détaillé (nom existant conservé)
+        if self.action == "list":
+            return SchoolClassListSerializer
+        return SchoolClassSerializer
 # ----------------------------
 # SUBJECTS
 # ----------------------------
