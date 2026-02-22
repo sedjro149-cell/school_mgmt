@@ -275,51 +275,65 @@ class GradeSerializer(serializers.ModelSerializer):
         return data
 
 
-## academics/serializers.py
+# serializers.py
 from rest_framework import serializers
-from academics.models import ClassScheduleEntry
-
-from rest_framework import serializers
-from .models import ClassScheduleEntry, Subject, SchoolClass
-# Assure-toi d'importer tes modèles Teacher/User correctement selon ton projet
+from academics.models import ClassScheduleEntry, Subject, SchoolClass
 
 class ClassScheduleEntrySerializer(serializers.ModelSerializer):
-    # Pour l'affichage (Read), on veut les détails
+    """
+    Serializer pour ClassScheduleEntry : léger et sûr pour affichage et écriture.
+    Expose également des champs lisibles (noms) et des heures formatées.
+    """
     subject_name = serializers.CharField(source='subject.name', read_only=True)
     teacher_name = serializers.SerializerMethodField()
     class_name = serializers.CharField(source='school_class.name', read_only=True)
-    
-    # Pour l'affichage de l'heure formatée (optionnel mais pratique)
+
     starts_at_formatted = serializers.SerializerMethodField()
     ends_at_formatted = serializers.SerializerMethodField()
 
     class Meta:
         model = ClassScheduleEntry
         fields = [
-            'id', 
+            'id',
             'school_class', 'class_name',
             'subject', 'subject_name',
             'teacher', 'teacher_name',
-            'weekday', 
+            'weekday',
             'starts_at', 'starts_at_formatted',
             'ends_at', 'ends_at_formatted',
         ]
 
     def get_teacher_name(self, obj):
-        if obj.teacher and obj.teacher.user:
-            return f"{obj.teacher.user.last_name} {obj.teacher.user.first_name}"
-        return "N/A"
+        # Accès defensif : évite d'exploser si relation manquante
+        try:
+            user = obj.teacher.user
+            last = getattr(user, "last_name", "") or ""
+            first = getattr(user, "first_name", "") or ""
+            return f"{last} {first}".strip() or "N/A"
+        except Exception:
+            return "N/A"
 
     def get_starts_at_formatted(self, obj):
-        return obj.starts_at.strftime("%H:%M") if obj.starts_at else None
+        return obj.starts_at.strftime("%H:%M") if getattr(obj, "starts_at", None) else None
 
     def get_ends_at_formatted(self, obj):
-        return obj.ends_at.strftime("%H:%M") if obj.ends_at else None
+        return obj.ends_at.strftime("%H:%M") if getattr(obj, "ends_at", None) else None
 
-    # Validation personnalisée : empêcher qu'un cours finisse avant de commencer
     def validate(self, data):
-        if data['starts_at'] >= data['ends_at']:
-            raise serializers.ValidationError("L'heure de fin doit être après l'heure de début.")
+        """
+        Validation défensive :
+        - utilise les valeurs fournies dans `data` si présentes,
+        - sinon, récupère les valeurs existantes sur l'instance (pour updates partiels).
+        - nève pas d'erreur si une des valeurs est absente (la validation est alors ignorée).
+        """
+        instance = getattr(self, "instance", None)
+
+        starts = data.get("starts_at", getattr(instance, "starts_at", None) if instance else None)
+        ends = data.get("ends_at", getattr(instance, "ends_at", None) if instance else None)
+
+        if starts is not None and ends is not None:
+            if starts >= ends:
+                raise serializers.ValidationError("L'heure de fin doit être après l'heure de début.")
         return data
 
 

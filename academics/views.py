@@ -551,51 +551,53 @@ from django_filters.rest_framework import DjangoFilterBackend
 from .models import ClassScheduleEntry
 from .serializers import ClassScheduleEntrySerializer
 
-# --- 1. VIEWSET D'ÉCRITURE (CRUD ADMIN/STAFF) ---
+# views.py
+from rest_framework import viewsets, filters
+from rest_framework.permissions import IsAuthenticated
+from django.db.models import Q
+
+from django_filters.rest_framework import DjangoFilterBackend
+
+from academics.models import ClassScheduleEntry
+from .serializers import ClassScheduleEntrySerializer
+
 class ClassScheduleEntryViewSet(viewsets.ModelViewSet):
     """
-    Permet la création, modification et suppression des créneaux.
+    CRUD pour les créneaux (utilisé par admin/staff).
+    - queryset optimisé avec select_related pour éviter N+1.
+    - permissions : IsAuthenticated (restreindre à admin si besoin).
     """
-    queryset = ClassScheduleEntry.objects.all()
+    queryset = ClassScheduleEntry.objects.select_related(
+        "school_class",
+        "subject",
+        "teacher__user",
+    ).all()
     serializer_class = ClassScheduleEntrySerializer
-    permission_classes = [IsAuthenticated] # Tu peux restreindre à IsAdminUser si besoin
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
-        
-        # Admin / Staff : Tout voir
+
+        # Admin / staff : Tout voir
         if user.is_staff or user.is_superuser:
-            return ClassScheduleEntry.objects.all()
+            return self.queryset
 
-        # Enseignant : Voir ses propres cours (pour info, ou modif si autorisé)
+        # Enseignant : Voir ses propres cours
         if hasattr(user, "teacher"):
-            return ClassScheduleEntry.objects.filter(teacher=user.teacher)
+            return self.queryset.filter(teacher=user.teacher)
 
-        # Les élèves/parents ne devraient pas accéder à ce ViewSet en écriture,
-        # mais on peut leur laisser le READ ici ou via TimetableViewSet.
+        # Les autres (élèves/parents) n'ont pas accès en écriture via ce ViewSet
         return ClassScheduleEntry.objects.none()
-
-
-# academics/views.py  (ou le fichier où est définie la view)
-from django.db.models import Q
-from rest_framework import viewsets, filters
-from rest_framework.permissions import IsAuthenticated
-from django_filters.rest_framework import DjangoFilterBackend
-
-from .models import ClassScheduleEntry
-from .serializers import ClassScheduleEntrySerializer
 
 
 class TimetableViewSet(viewsets.ReadOnlyModelViewSet):
     """
     End-point read-only optimisé pour l'affichage (Calendrier).
-    - Pagination désactivée (pagination_class = None) : renvoie un array direct (comme avant).
-    - Queryset pré-optimisé (select_related).
-    - Logique d'accès : admin = tout, parent = classes des enfants, étudiant = sa classe,
-      enseignant = ses cours OR classes où il enseigne.
-    - Accepts query params: class_id / school_class, teacher_id / teacher, weekday.
+    - pagination_class = None (retourne un array)
+    - queryset pré-optimisé (select_related)
+    - filtres : school_class, teacher, weekday
+    - protection : n'autorise pas une liste massive non filtrée pour les staff
     """
-    # IMPORTANT : désactive la pagination pour ce ViewSet (retournera un array)
     pagination_class = None
 
     queryset = ClassScheduleEntry.objects.select_related(
@@ -608,7 +610,12 @@ class TimetableViewSet(viewsets.ReadOnlyModelViewSet):
 
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ["school_class", "teacher", "weekday"]
-    search_fields = ["school_class__name", "subject__name", "teacher__user__last_name", "teacher__user__first_name"]
+    search_fields = [
+        "school_class__name",
+        "subject__name",
+        "teacher__user__last_name",
+        "teacher__user__first_name",
+    ]
     ordering_fields = ["weekday", "starts_at"]
 
     def get_queryset(self):
@@ -616,14 +623,24 @@ class TimetableViewSet(viewsets.ReadOnlyModelViewSet):
         user = self.request.user
         params = self.request.query_params
 
-        # --- A. LOGIQUE DE SÉCURITÉ (Qui peut voir quoi ?) ---
-        # Admin / staff : accès complet
+        # --- PROTECTION contre réponses massives non filtrées ---
+        # Si action=list et aucun filtre significatif n'est fourni, on renvoie rien
+        # pour les comptes staff (évite timeout/oom). Les parents/élèves/enseignants
+        # sont déjà restreints plus bas.
+        if self.action == "list":
+            class_param = params.get("class_id") or params.get("school_class")
+            teacher_param = params.get("teacher_id") or params.get("teacher")
+            weekday = params.get("weekday")
+
+            if (user.is_staff or user.is_superuser) and not any([class_param, teacher_param, weekday]):
+                return qs.none()
+
+        # --- A. LOGIQUE D'ACCES ---
         if user.is_staff or user.is_superuser:
             has_full_access = True
         else:
             has_full_access = False
 
-        # Build allowed class ids for parent/student
         allowed_class_ids = set()
         if not has_full_access:
             if hasattr(user, "student") and getattr(user.student, "school_class", None):
@@ -633,50 +650,45 @@ class TimetableViewSet(viewsets.ReadOnlyModelViewSet):
                 child_classes = list(user.parent.students.values_list("school_class_id", flat=True))
                 allowed_class_ids.update([c for c in child_classes if c is not None])
 
-        # Apply role-based restrictions
         if not has_full_access:
             if hasattr(user, "teacher"):
-                # Teacher: allow entries where teacher is the teacher OR entries for classes the teacher teaches
                 teacher = user.teacher
                 teacher_class_ids = list(teacher.classes.values_list("id", flat=True))
                 qs = qs.filter(Q(teacher=teacher) | Q(school_class__id__in=teacher_class_ids)).distinct()
             else:
-                # Parent / Student: restrict to allowed_class_ids
                 if not allowed_class_ids:
                     return qs.none()
                 qs = qs.filter(school_class__id__in=allowed_class_ids)
 
-        # --- B. FILTRES MANUELS ROBUSTES (Query Params) ---
-        # 1. Filtre par Classe (ID ou Name)
+        # --- B. FILTRES MANUELS (Query Params) ---
+        # Filtre par classe (id ou name)
         class_param = params.get("class_id") or params.get("school_class")
         if class_param:
-            # if numeric -> id, else match name (case-insensitive)
             if str(class_param).isdigit():
                 qs = qs.filter(school_class__id=int(class_param))
             else:
                 qs = qs.filter(school_class__name__iexact=class_param)
 
-        # 2. Filtre par Prof (ID)
+        # Filtre par prof (id ou username/nom)
         teacher_param = params.get("teacher_id") or params.get("teacher")
         if teacher_param:
             if str(teacher_param).isdigit():
                 qs = qs.filter(teacher__id=int(teacher_param))
             else:
-                # allow filtering by teacher username or last_name if needed
                 qs = qs.filter(
                     Q(teacher__user__username__iexact=teacher_param) |
                     Q(teacher__user__last_name__iexact=teacher_param)
                 )
 
-        # 3. Filtre par Jour (Weekday)
+        # Filtre par weekday
         weekday = params.get("weekday")
         if weekday is not None and weekday != "":
             try:
                 qs = qs.filter(weekday=int(weekday))
             except (ValueError, TypeError):
-                pass  # ignore invalid values
+                pass
 
-        # final ordering
+        # Order final
         return qs.order_by("weekday", "starts_at")
 # ----------------------------
 # REPORT CARDS
