@@ -668,7 +668,7 @@ class DashboardStatsView(APIView):
 # ------------------------------------------------------------------
 # DASHBOARD: best students (per level, per term, overall)
 # ------------------------------------------------------------------
-CACHE_SECONDS = 30
+CACHE_SECONDS = 300
 
 
 class DashboardTopStudentsView(APIView):
