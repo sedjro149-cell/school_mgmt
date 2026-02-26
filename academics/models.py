@@ -155,6 +155,32 @@ class Grade(models.Model):
         self.calculate_averages()
         super().save(*args, **kwargs)
 
+# DraftGrade: brouillons de notes saisis par les profs avant soumission définitive
+from django.db import models
+
+class DraftGrade(models.Model):
+    TERM_CHOICES = [("T1", "1er trimestre"), ("T2", "2e trimestre"), ("T3", "3e trimestre")]
+
+    teacher = models.ForeignKey("core.Teacher", on_delete=models.CASCADE, related_name="draft_grades")
+    student = models.ForeignKey("core.Student", on_delete=models.CASCADE, related_name="draft_grades")
+    subject = models.ForeignKey("academics.Subject", on_delete=models.CASCADE, related_name="draft_grades")
+    term = models.CharField(max_length=10, choices=TERM_CHOICES)
+
+    interrogation1 = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    interrogation2 = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    interrogation3 = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    devoir1 = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    devoir2 = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+
+    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("teacher", "student", "subject", "term")
+        ordering = ["teacher__user__username", "student__user__username", "subject__name"]
+
+    def __str__(self):
+        return f"Draft {self.teacher} - {self.student} - {self.subject} ({self.term})"
 
 # =======================
 # Commentaires des professeurs sur les matières

@@ -512,6 +512,103 @@ class ReportCardSerializer(serializers.Serializer):
         val = self._get_from_obj(obj, "worst_average")
         return float(val) if val is not None else None
 
+# academics/serializers.py (patché)
+from rest_framework import serializers
+from academics.models import DraftGrade, Subject, ClassSubject
+from core.models import Student, Teacher
+
+class DraftGradeSerializer(serializers.ModelSerializer):
+    # write helpers — alternatives : accept either *_ref or direct pk (one or the other)
+    student_ref = serializers.SlugRelatedField(
+        slug_field="id",
+        queryset=Student.objects.all(),
+        write_only=True,
+        source="student",
+        required=False
+    )
+    student = serializers.PrimaryKeyRelatedField(
+        queryset=Student.objects.all(),
+        write_only=True,
+        required=False
+    )
+
+    subject_ref = serializers.SlugRelatedField(
+        slug_field="id",
+        queryset=Subject.objects.all(),
+        write_only=True,
+        source="subject",
+        required=False
+    )
+    subject = serializers.PrimaryKeyRelatedField(
+        queryset=Subject.objects.all(),
+        write_only=True,
+        required=False
+    )
+
+    # read helpers (always read-only)
+    student_id = serializers.CharField(source="student.id", read_only=True)
+    student_name = serializers.CharField(source="student.user.get_full_name", read_only=True)
+    subject_id = serializers.CharField(source="subject.id", read_only=True)
+    subject_name = serializers.CharField(source="subject.name", read_only=True)
+
+    # teacher read-only (teacher.id is a charfield in your model)
+    teacher_id = serializers.CharField(source="teacher.id", read_only=True)
+    teacher_name = serializers.CharField(source="teacher.user.get_full_name", read_only=True)
+
+    class Meta:
+        model = DraftGrade
+        fields = [
+            "id",
+            # teacher is NOT writable by client — injected server-side
+            "teacher_id", "teacher_name",
+            # student (either pk OR student_ref)
+            "student", "student_id", "student_name", "student_ref",
+            # subject (either pk OR subject_ref)
+            "subject", "subject_id", "subject_name", "subject_ref",
+            "term",
+            "interrogation1", "interrogation2", "interrogation3",
+            "devoir1", "devoir2",
+            "created_at", "updated_at",
+        ]
+        read_only_fields = [
+            "teacher_id", "teacher_name",
+            "student_id", "student_name",
+            "subject_id", "subject_name",
+            "created_at", "updated_at"
+        ]
+
+    def validate(self, data):
+        """
+        - On autorise either student (pk) OR student_ref (slug) OR both.
+        - Même chose pour subject.
+        - En création (instance is None) : require student + subject + term.
+        - Vérification métier : la matière doit exister pour la classe de l'élève.
+        """
+        # resolved objects will be in data as 'student' and 'subject' thanks to source="student"
+        student = data.get("student") or (self.instance.student if self.instance else None)
+        subject = data.get("subject") or (self.instance.subject if self.instance else None)
+        term = data.get("term") or (self.instance.term if self.instance else None)
+
+        # creation: require student + subject + term
+        if self.instance is None:
+            missing = []
+            if not student:
+                missing.append("student / student_ref")
+            if not subject:
+                missing.append("subject / subject_ref")
+            if not term:
+                missing.append("term")
+            if missing:
+                raise serializers.ValidationError({"detail": f"Champs requis manquants: {', '.join(missing)}"})
+
+        # if we have student & subject -> domain check
+        if student and subject:
+            if not ClassSubject.objects.filter(school_class=student.school_class, subject=subject).exists():
+                raise serializers.ValidationError({
+                    "subject": f"La matière '{subject.name}' n'est pas définie pour la classe '{student.school_class.name}'."
+                })
+
+        return data
 # academics/serializers.py
 from rest_framework import serializers
 from academics.models import SubjectComment

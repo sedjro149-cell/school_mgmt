@@ -18,6 +18,9 @@ from .views import (
     ReportCardViewSet,
     StudentAttendanceViewSet,  # <-- Ajouté pour gérer les actions POST/DELETE des absences
 
+    # Draft grades
+    DraftGradeViewSet,  # <-- NOUVEAU : CRUD brouillons + endpoint submit
+
     # APIViews (Actions spécifiques)
     GenerateTimetableView,
     TimetableConflictsView,
@@ -43,6 +46,7 @@ router.register(r'parents', ParentViewSet, basename='parent')
 
 # Gestion scolaire
 router.register(r'grades', GradeViewSet, basename='grade')
+router.register(r'draft-grades', DraftGradeViewSet, basename='draftgrade')  # <-- ROUTE POUR LES BROUILLONS
 router.register(r'report-cards', ReportCardViewSet, basename='report-card')
 router.register(r'announcements', AnnouncementViewSet, basename='announcements')
 router.register(r"subject-comments", SubjectCommentViewSet, basename="subjectcomment")

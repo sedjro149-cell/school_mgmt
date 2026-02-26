@@ -7,9 +7,17 @@ import time
 from collections import defaultdict
 from datetime import datetime
 from django.apps import apps
-
+from rest_framework import viewsets, status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from django.db import transaction
+from django.db import IntegrityError
 from django.db import transaction
 from django.contrib.auth.models import User
+from academics.models import DraftGrade, Grade, Subject
+
 
 from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
@@ -37,6 +45,7 @@ from academics.serializers import (
     ReportCardSerializer,
     SubjectCommentSerializer,
     TimeSlotSerializer,
+    DraftGradeSerializer,
 )
 from .serializers import (
     UserSerializer,
@@ -332,7 +341,186 @@ class ClassSubjectViewSet(viewsets.ModelViewSet):
             class_subject.delete()
             return Response({"detail": "Liaison supprimée avec succès."}, status=status.HTTP_204_NO_CONTENT)
 
+class DraftGradeViewSet(viewsets.ModelViewSet):
+    """
+    CRUD sur les brouillons de notes (DraftGrade).
+    - Les profs peuvent CRUD uniquement leurs brouillons (pour leurs classes et leur matière).
+    - Les admins peuvent tout.
+    - Endpoint additionnel `POST /api/draft-grades/submit/` pour soumettre définitivement les brouillons.
+    """
+    queryset = DraftGrade.objects.all()
+    serializer_class = DraftGradeSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ["student", "subject", "term"]
 
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_staff or user.is_superuser:
+            return DraftGrade.objects.all()
+        if hasattr(user, "teacher"):
+            teacher = user.teacher
+            # drafts created by this teacher, limited to his classes & subject for safety
+            return DraftGrade.objects.filter(teacher=teacher, student__school_class__in=teacher.classes.all(), subject=teacher.subject)
+        if hasattr(user, "parent"):
+            # parent can view drafts for their children (read-only)
+            return DraftGrade.objects.filter(student__parent=user.parent)
+        if hasattr(user, "student"):
+            # student can view their drafts (rare), mostly not used
+            return DraftGrade.objects.filter(student=user.student)
+        return DraftGrade.objects.none()
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        if not hasattr(user, "teacher") and not (user.is_staff or user.is_superuser):
+            raise PermissionDenied("Vous devez être professeur pour créer des brouillons de notes.")
+
+        teacher = user.teacher if hasattr(user, "teacher") else None
+        student = serializer.validated_data["student"]
+        subject = serializer.validated_data["subject"]
+        term = serializer.validated_data["term"]
+
+        # permission checks
+        if not (user.is_staff or user.is_superuser):
+            # la matière doit être la matière du prof
+            if subject != teacher.subject:
+                raise PermissionDenied("Vous ne pouvez saisir des notes que pour votre matière.")
+            # l'élève doit être dans les classes du prof
+            if student.school_class not in teacher.classes.all():
+                raise PermissionDenied("Vous ne pouvez saisir des notes que pour vos élèves.")
+
+        # require at least one numeric field when creating
+        note_fields = ["interrogation1", "interrogation2", "interrogation3", "devoir1", "devoir2"]
+        if not any(serializer.validated_data.get(f) is not None for f in note_fields):
+            raise serializers.ValidationError("Au moins une note doit être fournie dans le brouillon.")
+
+        # Upsert behaviour: si le même draft existe pour (teacher,student,subject,term) -> update
+        existing = DraftGrade.objects.filter(teacher=teacher, student=student, subject=subject, term=term).first() if teacher else None
+        if existing:
+            # update existing fields
+            for k, v in serializer.validated_data.items():
+                setattr(existing, k, v)
+            existing.save()
+            # bind instance so DRF returns it
+            serializer.instance = existing
+            return
+
+        # else create
+        serializer.save(teacher=teacher)
+
+    def perform_update(self, serializer):
+        user = self.request.user
+        instance = serializer.instance
+
+        if not (user.is_staff or user.is_superuser):
+            if not hasattr(user, "teacher"):
+                raise PermissionDenied("Permission refusée.")
+            teacher = user.teacher
+            if instance.teacher != teacher:
+                raise PermissionDenied("Vous ne pouvez modifier que vos propres brouillons.")
+            if instance.student.school_class not in teacher.classes.all():
+                raise PermissionDenied("Vous ne pouvez modifier que vos propres élèves.")
+            if instance.subject != teacher.subject:
+                raise PermissionDenied("Vous ne pouvez modifier que votre matière.")
+
+        # require at least one numeric field on update as well (unless you want to allow clearing)
+        note_fields = ["interrogation1", "interrogation2", "interrogation3", "devoir1", "devoir2"]
+        if not any((serializer.validated_data.get(f) is not None) or (getattr(instance, f) is not None) for f in note_fields):
+            raise serializers.ValidationError("Au moins une note doit être présente dans le brouillon.")
+
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        user = self.request.user
+        if not (user.is_staff or user.is_superuser):
+            if not hasattr(user, "teacher") or instance.teacher != user.teacher:
+                raise PermissionDenied("Vous ne pouvez supprimer que vos brouillons.")
+        instance.delete()
+
+    @action(detail=False, methods=["post"], url_path="submit")
+    def submit(self, request):
+        """
+        Soumet définitivement les brouillons du prof.
+        Corps attendu: { "term": "T1", "school_class": <id optional> }
+        - Crée les enregistrements Grade de façon atomique.
+        - Si un Grade final existe déjà pour un étudiant+matière+term, la soumission échoue (retourne 400 avec détails).
+        - Supprime les DraftGrade créés.
+        """
+        user = request.user
+        if not hasattr(user, "teacher") and not (user.is_staff or user.is_superuser):
+            raise PermissionDenied("Seuls les profs peuvent soumettre des brouillons.")
+
+        teacher = user.teacher
+        term = request.data.get("term")
+        school_class_id = request.data.get("school_class", None)
+
+        if term not in dict(DraftGrade.TERM_CHOICES).keys():
+            return Response({"detail": "Champ 'term' manquant ou invalide."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # collect drafts to submit
+        drafts_qs = DraftGrade.objects.filter(teacher=teacher, term=term, subject=teacher.subject)
+        if school_class_id:
+            drafts_qs = drafts_qs.filter(student__school_class_id=school_class_id)
+
+        drafts = list(drafts_qs.select_related("student", "subject"))
+        if not drafts:
+            return Response({"detail": "Aucun brouillon à soumettre pour les critères fournis."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # check for existing final grades that would collide
+        collisions = []
+        for d in drafts:
+            if Grade.objects.filter(student=d.student, subject=d.subject, term=d.term).exists():
+                collisions.append({
+                    "student_id": d.student.id,
+                    "student_name": d.student.user.get_full_name(),
+                    "subject_id": d.subject.id,
+                    "term": d.term
+                })
+        if collisions:
+            return Response({"detail": "Certains élèves ont déjà des notes finales pour ce (subject, term).", "collisions": collisions}, status=status.HTTP_400_BAD_REQUEST)
+
+        created = []
+        errors = []
+        # atomic creation: create Grade objects (use save() to compute averages)
+        try:
+            with transaction.atomic():
+                for d in drafts:
+                    # double-check permissions per draft
+                    if d.student.school_class not in teacher.classes.all():
+                        errors.append({"student_id": d.student.id, "error": "Élève hors de vos classes."})
+                        continue
+                    if d.subject != teacher.subject:
+                        errors.append({"student_id": d.student.id, "error": "Matière différente de la vôtre."})
+                        continue
+
+                    # require at least one note
+                    if not any(getattr(d, f) is not None for f in ["interrogation1", "interrogation2", "interrogation3", "devoir1", "devoir2"]):
+                        errors.append({"student_id": d.student.id, "error": "Aucune note fournie dans le brouillon."})
+                        continue
+
+                    g = Grade(
+                        student=d.student,
+                        subject=d.subject,
+                        term=d.term,
+                        interrogation1=d.interrogation1,
+                        interrogation2=d.interrogation2,
+                        interrogation3=d.interrogation3,
+                        devoir1=d.devoir1,
+                        devoir2=d.devoir2,
+                    )
+                    # save triggers calculate_averages()
+                    g.save()
+                    created.append({"grade_id": g.id, "student_id": d.student.id})
+                # if any errors collected, rollback entire transaction to avoid partial submits
+                if errors:
+                    raise IntegrityError("Validation errors in drafts; abort transaction.")
+                # delete drafts after successful creation
+                DraftGrade.objects.filter(id__in=[d.id for d in drafts]).delete()
+        except IntegrityError as e:
+            return Response({"detail": "Soumission annulée.", "errors": errors or str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        # success: optionally notify admin or run post-commit tasks
+        # ex: transaction.on_commit(lambda: notif_service.notify_submission(teacher.id, created))
+        return Response({"created": created}, status=status.HTTP_201_CREATED)
 # ----------------------------
 # GRADE
 # ----------------------------
