@@ -119,9 +119,6 @@ class ParentViewSet(viewsets.ModelViewSet):
         return Parent.objects.none()
 
 
-# ----------------------------
-# STUDENTS
-# ----------------------------
 class StudentViewSet(viewsets.ModelViewSet):
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
@@ -130,34 +127,27 @@ class StudentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
 
-        # --- Admin / Superuser : tout
+        # 1) Admin / Superuser : accès complet
         if user.is_staff or user.is_superuser:
             return Student.objects.all()
 
-        # --- Parent : uniquement ses enfants
+        # 2) Parent : uniquement ses enfants
         if hasattr(user, "parent"):
-            parent = getattr(user, "parent", None)
-            if parent is None:
-                return Student.objects.none()
-            return Student.objects.filter(parent=parent)
+            # on peut select_related pour optimiser les accès courants
+            return Student.objects.filter(parent=user.parent).select_related("user", "school_class")
 
-        # --- Élève : uniquement lui-même
+        # 3) Élève : uniquement lui-même
         if hasattr(user, "student"):
-            return Student.objects.filter(user=user)
+            return Student.objects.filter(user=user).select_related("user", "school_class")
 
-        # --- Enseignant : élèves de ses classes
-        if hasattr(user, "teacher"):
-            teacher = getattr(user, "teacher", None)
-            if teacher is None:
-                return Student.objects.none()
-            # suppose que tu as un modèle ClassSubject qui relie teacher <-> school_class
-            return Student.objects.filter(
-                school_class__classsubject__teacher=teacher
-            ).distinct()
+        # 4) Enseignant : élèves des classes que ce prof suit (via Teacher.classes M2M)
+        teacher = getattr(user, "teacher", None)
+        if teacher:
+            # on filtre par la relation M2M "teachers" définie dans SchoolClass <-> Teacher
+            return Student.objects.filter(school_class__teachers=teacher).distinct().select_related("user", "school_class")
 
-        # --- Autres rôles : rien
+        # 5) Autres : aucun accès
         return Student.objects.none()
-
 
 # ----------------------------
 # LEVELS
