@@ -31,15 +31,30 @@ class ParentSerializer(serializers.ModelSerializer):
         fields = ["id", "user", "phone"]
 
 
-# ---- STUDENT ----
+# serializers.py
 class StudentSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     parent = ParentSerializer(read_only=True)
-    school_class = serializers.StringRelatedField()
+
+    # id de la classe (entier ou null)
+    school_class_id = serializers.PrimaryKeyRelatedField(
+        source='school_class', read_only=True
+    )
+    # nom lisible (string)
+    school_class_name = serializers.StringRelatedField(
+        source='school_class', read_only=True
+    )
 
     class Meta:
         model = Student
-        fields = ["id", "user", "date_of_birth", "school_class", "parent"]
+        fields = [
+            "id",
+            "user",
+            "date_of_birth",
+            "school_class_id",
+            "school_class_name",
+            "parent",
+        ]
 
 
 # ---- LEVEL ----
