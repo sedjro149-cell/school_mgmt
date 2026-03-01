@@ -45,6 +45,7 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = [drf_filters.SearchFilter, drf_filters.OrderingFilter]
     search_fields = ['topic', 'recipient_user__username']
     ordering_fields = ['created_at', 'sent_at', 'read']
+    pagination_class = None
 
     def get_queryset(self):
         user = self.request.user

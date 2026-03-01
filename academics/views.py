@@ -342,6 +342,7 @@ class DraftGradeViewSet(viewsets.ModelViewSet):
     serializer_class = DraftGradeSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
+    pagination_class = None
     filterset_fields = ["student", "subject", "term"]
 
     def get_queryset(self):
@@ -2134,6 +2135,7 @@ class AnnouncementViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['title', 'content']
     ordering_fields = ['created_at']
+    pagination_class = None
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
