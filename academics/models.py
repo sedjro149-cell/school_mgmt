@@ -217,40 +217,7 @@ class TimeSlot(models.Model):
     def __str__(self):
         day_display = Weekday(self.day).label  # pour afficher "Monday", "Tuesday", etc.
         return f"{day_display} {self.start_time.strftime('%H:%M')} - {self.end_time.strftime('%H:%M')}"
-# models.py
-from django.db import models
 
-class StudentAttendance(models.Model):
-    STATUS_CHOICES = [
-        ('ABSENT', 'Absent'),
-        ('LATE', 'Retard'),
-        ('EXCUSED', 'Excusé'),
-    ]
-
-    student = models.ForeignKey(
-        "core.Student", 
-        on_delete=models.CASCADE, 
-        related_name="attendances"
-    )
-    # On lie l'absence à un CRÉNEAU d'emploi du temps précis
-    schedule_entry = models.ForeignKey(
-        ClassScheduleEntry, 
-        on_delete=models.CASCADE, 
-        related_name="student_attendances"
-    )
-    date = models.DateField() # La date réelle (ex: 2025-12-01)
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='ABSENT')
-    reason = models.CharField(max_length=255, blank=True, null=True) # "Maladie", "Non justifié"...
-
-    class Meta:
-        # Un élève ne peut pas être marqué absent deux fois pour le même cours le même jour
-        unique_together = ('student', 'schedule_entry', 'date')
-        indexes = [
-            models.Index(fields=['date', 'schedule_entry']),
-        ]
-
-    def __str__(self):
-        return f"{self.student} - {self.status} - {self.date}"
 class Announcement(models.Model):
 
     title = models.CharField(max_length=255, verbose_name="Titre")
@@ -286,3 +253,179 @@ class Announcement(models.Model):
     def __str__(self):
 
         return f"{self.title} ({self.created_at.strftime('%d/%m/%Y')})"
+
+# =============================================================================
+#  À AJOUTER dans academics/models.py
+#
+#  MIGRATION :
+#  1. Coller AttendanceSession AVANT la classe StudentAttendance existante
+#  2. Remplacer la classe StudentAttendance existante par la version ci-dessous
+#  3. python manage.py makemigrations academics
+#  4. python manage.py migrate
+# =============================================================================
+
+from django.conf import settings
+from django.db import models
+from django.utils import timezone
+
+
+# -----------------------------------------------------------------------------
+#  NOUVEAU MODÈLE — à insérer avant StudentAttendance
+# -----------------------------------------------------------------------------
+
+class AttendanceSession(models.Model):
+    """
+    Représente l'acte d'ouvrir la feuille d'appel pour un créneau à une date.
+
+    Cycle de vie :
+        OPEN      → feuille ouverte, absences modifiables, aucune notification
+        SUBMITTED → appel validé, données figées, notifications envoyées
+        CANCELLED → cours annulé, aucune présence comptabilisée
+
+    Règle de lecture :
+        aucune session            → appel non effectué
+        session OPEN              → appel en cours (données provisoires)
+        session SUBMITTED         → appel fait (présences/absences définitives)
+        session CANCELLED         → cours n'a pas eu lieu
+    """
+
+    class Status(models.TextChoices):
+        OPEN      = "OPEN",      "En cours"
+        SUBMITTED = "SUBMITTED", "Validé"
+        CANCELLED = "CANCELLED", "Annulé"
+
+    schedule_entry = models.ForeignKey(
+        "ClassScheduleEntry",
+        on_delete=models.CASCADE,
+        related_name="attendance_sessions",
+    )
+    date = models.DateField()
+
+    status = models.CharField(
+        max_length=12,
+        choices=Status.choices,
+        default=Status.OPEN,
+        db_index=True,
+    )
+    opened_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="attendance_sessions_opened",
+    )
+    opened_at    = models.DateTimeField(auto_now_add=True)
+    submitted_at = models.DateTimeField(null=True, blank=True)
+    submitted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="attendance_sessions_submitted",
+    )
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+    note         = models.TextField(blank=True, null=True)
+
+    class Meta:
+        unique_together = ("schedule_entry", "date")
+        indexes = [
+            models.Index(fields=["date"]),
+            models.Index(fields=["status"]),
+        ]
+        ordering = ["-date", "schedule_entry__starts_at"]
+
+    def __str__(self):
+        return f"Session {self.schedule_entry} — {self.date} [{self.status}]"
+
+    @property
+    def is_editable(self):
+        return self.status == self.Status.OPEN
+
+    def submit(self, user):
+        if self.status != self.Status.OPEN:
+            return False
+        self.status       = self.Status.SUBMITTED
+        self.submitted_at = timezone.now()
+        self.submitted_by = user
+        self.save(update_fields=["status", "submitted_at", "submitted_by"])
+        return True
+
+    def cancel(self, user):
+        if self.status == self.Status.SUBMITTED:
+            return False
+        self.status       = self.Status.CANCELLED
+        self.cancelled_at = timezone.now()
+        self.save(update_fields=["status", "cancelled_at"])
+        return True
+
+    def reopen(self, user):
+        """Admin seulement — correction post-soumission."""
+        if self.status != self.Status.SUBMITTED:
+            return False
+        self.status       = self.Status.OPEN
+        self.submitted_at = None
+        self.submitted_by = None
+        self.save(update_fields=["status", "submitted_at", "submitted_by"])
+        return True
+
+
+# -----------------------------------------------------------------------------
+#  REMPLACEMENT de StudentAttendance
+#  (remplace entièrement la version existante dans models.py)
+# -----------------------------------------------------------------------------
+
+class StudentAttendance(models.Model):
+    """
+    Enregistrement d'une non-présence dans une AttendanceSession.
+
+    Règle de lecture :
+        session SUBMITTED + aucune entrée pour cet élève  → PRÉSENT confirmé
+        session SUBMITTED + entrée présente               → ABSENT / LATE / EXCUSED
+        session OPEN                                      → données provisoires
+        aucune session                                    → appel non effectué
+
+    Note : "PRESENT" n'existe pas comme valeur stockée.
+    L'absence de ligne dans une session soumise signifie présent.
+    """
+
+    STATUS_CHOICES = [
+        ("ABSENT",  "Absent"),
+        ("LATE",    "En retard"),
+        ("EXCUSED", "Excusé"),
+    ]
+
+    session = models.ForeignKey(
+        AttendanceSession,
+        on_delete=models.CASCADE,
+        related_name="attendances",
+        null=True,      # ← temporaire
+        blank=True,
+    )
+    student = models.ForeignKey(
+        "core.Student",
+        on_delete=models.CASCADE,
+        related_name="attendances",
+    )
+    # Dénormalisé pour requêtes historiques rapides (évite JOIN sur session)
+    date = models.DateField(db_index=True)
+
+    status    = models.CharField(max_length=10, choices=STATUS_CHOICES, default="ABSENT")
+    reason    = models.CharField(max_length=255, blank=True, null=True)
+    marked_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="attendances_marked",
+    )
+    notified_at = models.DateTimeField(null=True, blank=True)
+    created_at  = models.DateTimeField(auto_now_add=True)
+    updated_at  = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("student", "session")
+        indexes = [
+            models.Index(fields=["date", "student"]),
+            models.Index(fields=["session", "status"]),
+        ]
+        ordering = ["date", "student__user__last_name"]
+
+    def __str__(self):
+        return f"{self.student} — {self.status} — {self.date}"

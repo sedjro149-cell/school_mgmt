@@ -693,7 +693,119 @@ from .models import StudentAttendance
 from rest_framework import serializers
 from .models import StudentAttendance
 
-class StudentAttendanceSerializer(serializers.ModelSerializer):
+# =============================================================================
+#  À INTÉGRER dans academics/serializers.py
+#
+#  - Remplacer la classe StudentAttendanceSerializer existante par celle-ci
+#  - Ajouter AttendanceSessionSerializer à la suite
+# =============================================================================
+
+from rest_framework import serializers
+from academics.models import AttendanceSession, StudentAttendance
+
+
+class AttendanceSessionSerializer(serializers.ModelSerializer):
+    opened_by_name    = serializers.SerializerMethodField()
+    submitted_by_name = serializers.SerializerMethodField()
+    is_editable       = serializers.BooleanField(read_only=True)
+    subject_name      = serializers.CharField(
+        source="schedule_entry.subject.name", read_only=True
+    )
+    starts_at  = serializers.TimeField(source="schedule_entry.starts_at",    read_only=True)
+    ends_at    = serializers.TimeField(source="schedule_entry.ends_at",      read_only=True)
+    class_name = serializers.CharField(
+        source="schedule_entry.school_class.name", read_only=True
+    )
+
     class Meta:
-        model = StudentAttendance
-        fields = ['id', 'student', 'schedule_entry', 'date', 'status', 'reason']  # reason ajouté
+        model  = AttendanceSession
+        fields = [
+            "id", "schedule_entry", "date", "status",
+            "opened_by", "opened_by_name", "opened_at",
+            "submitted_by", "submitted_by_name", "submitted_at",
+            "cancelled_at", "note",
+            "is_editable", "subject_name", "starts_at", "ends_at", "class_name",
+        ]
+        read_only_fields = [
+            "opened_by", "opened_at",
+            "submitted_by", "submitted_at",
+            "cancelled_at",
+        ]
+
+    def get_opened_by_name(self, obj):
+        return obj.opened_by.get_full_name() if obj.opened_by else None
+
+    def get_submitted_by_name(self, obj):
+        return obj.submitted_by.get_full_name() if obj.submitted_by else None
+
+    def validate(self, data):
+        entry = data.get("schedule_entry")
+        date  = data.get("date")
+        # Empêcher la création d'un doublon (l'unicité est aussi en DB mais autant prévenir)
+        if entry and date and not self.instance:
+            if AttendanceSession.objects.filter(schedule_entry=entry, date=date).exists():
+                raise serializers.ValidationError(
+                    "Une session existe déjà pour ce créneau à cette date."
+                )
+        return data
+
+
+class StudentAttendanceSerializer(serializers.ModelSerializer):
+    """
+    Remplace l'ancienne version.
+    En lecture : expose student_name et marked_by_name.
+    En écriture : date est déduite de la session (côté view).
+    Valide que la session est encore OPEN avant tout changement.
+    """
+    student_name   = serializers.SerializerMethodField(read_only=True)
+    marked_by_name = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model  = StudentAttendance
+        fields = [
+            "id", "session", "student", "student_name",
+            "date", "status", "reason",
+            "marked_by", "marked_by_name",
+            "notified_at", "created_at", "updated_at",
+        ]
+        read_only_fields = [
+            "date", "marked_by", "marked_by_name",
+            "notified_at", "created_at", "updated_at",
+        ]
+
+    def get_student_name(self, obj):
+        u = getattr(obj.student, "user", None)
+        return f"{u.last_name} {u.first_name}" if u else str(obj.student)
+
+    def get_marked_by_name(self, obj):
+        return obj.marked_by.get_full_name() if obj.marked_by else None
+
+    def validate(self, data):
+        session = data.get("session") or (self.instance.session if self.instance else None)
+
+        if session and not session.is_editable:
+            raise serializers.ValidationError(
+                "Cette session est déjà soumise ou annulée. "
+                "Demandez une réouverture avant de modifier."
+            )
+        # Vérifier que l'élève appartient à la classe du créneau
+        student = data.get("student") or (self.instance.student if self.instance else None)
+        if session and student:
+            if (
+                getattr(student, "school_class_id", None)
+                != session.schedule_entry.school_class_id
+            ):
+                raise serializers.ValidationError(
+                    "Cet élève n'appartient pas à la classe de cette session."
+                )
+        return data
+
+    def create(self, validated_data):
+        # Date dénormalisée + auteur injectés ici, pas côté client
+        validated_data["date"]      = validated_data["session"].date
+        validated_data["marked_by"] = self.context["request"].user
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        validated_data["marked_by"] = self.context["request"].user
+        return super().update(instance, validated_data)
