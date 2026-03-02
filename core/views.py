@@ -635,38 +635,70 @@ class ProfileView(APIView):
 # Dashboard — statistiques générales
 # ===========================================================================
 
+# ===========================================================================
+# Dashboard — statistiques générales
+# ===========================================================================
+
 class DashboardStatsView(APIView):
     permission_classes = [IsAuthenticated]
 
-    @method_decorator(cache_page(30))
+    @method_decorator(cache_page(60))  # 30 s → 60 s, stats globales peu volatiles
     def get(self, request):
+        # ✅ Un seul aggregate() au lieu de 3 .count() séparés
+        counts = User.objects.aggregate(
+            students_count=Count("student", distinct=True),
+            teachers_count=Count("teacher", distinct=True),
+            parents_count=Count("parent", distinct=True),
+        )
+
+        # ✅ values/annotate déjà optimal, rien à changer
         students_by_sex = {
             entry["sex"]: entry["count"]
             for entry in Student.objects.values("sex").annotate(count=Count("id"))
         }
+
+        # ✅ only() pour ne pas charger les champs inutiles des classes
         top_classes = list(
             SchoolClass.objects
+            .only("id", "name")
             .annotate(student_count=Count("students"))
             .order_by("-student_count")[:8]
             .values("id", "name", "student_count")
         )
+
         return Response({
-            "students_count": Student.objects.count(),
-            "teachers_count": Teacher.objects.count(),
-            "parents_count":  Parent.objects.count(),
+            **counts,
             "students_by_sex": students_by_sex,
             "top_classes":     top_classes,
         })
 
 
 # ===========================================================================
-# Dashboard — meilleurs élèves
+# Dashboard — meilleurs élèves  ⏸️  MIS EN PAUSE
 # ===========================================================================
-
 CACHE_SECONDS = 300
-
-
 class DashboardTopStudentsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # 🔴 Fonctionnalité temporairement désactivée le temps de la refonte.
+        # Pour réactiver : supprimer ce bloc et décommenter le code ci-dessous.
+        return Response(
+            {
+                "detail": (
+                    "La fonctionnalité 'meilleurs élèves' est temporairement "
+                    "indisponible. Elle sera réactivée après optimisation."
+                )
+            },
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+
+    # -------------------------------------------------------------------------
+    # ⬇️  Ancien code conservé pour la prochaine version — NE PAS SUPPRIMER
+    # -------------------------------------------------------------------------
+    # @method_decorator(cache_page(CACHE_SECONDS))
+    # def get(self, request):
+    #     ... (tout le code existant ici)
     permission_classes = [IsAuthenticated]
 
     @method_decorator(cache_page(CACHE_SECONDS))
