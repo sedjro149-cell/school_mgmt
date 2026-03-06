@@ -1708,191 +1708,384 @@ def _overlaps(a_weekday, a_start, a_end, b_weekday, b_start, b_end) -> bool:
     return (a_start < b_end) and (b_start < a_end)
 
 
+# =============================================================================
+#  VUES — à intégrer dans academics/views.py
+#  Remplacer TimetableBatchValidateView et TimetableBatchApplyView
+# =============================================================================
+
+from academics.services.timetable_batch import (
+    validate_batch_operations,
+    apply_batch_operations,
+)
+
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
+
+
 class TimetableBatchValidateView(APIView):
+    """
+    POST /timetable/batch-validate/
+
+    Simule des déplacements d'entrées et retourne un rapport complet
+    SANS toucher à la DB.
+
+    Body :
+    {
+        "operations": [
+            {"entry_id": 42, "target_slot_idx": 7},
+            {
+                "entry_id": 55,
+                "target_weekday": 2,
+                "target_start": "10:00",
+                "target_end": "12:00"
+            }
+        ]
+    }
+
+    Réponse :
+    {
+        "valid": true|false,
+        "hard_errors": [...],
+        "soft_warnings": [...],
+        "preview": {
+            "42": {"from": {...}, "to": {...}},
+            ...
+        }
+    }
+    """
     permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
-        payload = request.data or {}
-        ops = payload.get("operations")
-        if not isinstance(ops, list):
-            return Response({"detail": "operations doit être une liste."}, status=status.HTTP_400_BAD_REQUEST)
+        if not (request.user.is_staff or request.user.is_superuser):
+            return Response(
+                {"detail": "Réservé aux administrateurs."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
-        entry_ids = {int(op.get("entry_id")) for op in ops if op.get("entry_id") is not None}
-        if not entry_ids:
-            return Response({"detail": "Aucun entry_id fourni."}, status=status.HTTP_400_BAD_REQUEST)
+        ops = (request.data or {}).get("operations")
 
-        db_entries = list(
-            ClassScheduleEntry.objects.select_related("school_class", "teacher", "subject").filter(id__in=entry_ids)
-        )
-        missing = list(entry_ids - {e.id for e in db_entries})
-        if missing:
-            return Response({"detail": "Entries non trouvées", "missing_entry_ids": missing}, status=status.HTTP_400_BAD_REQUEST)
+        if not isinstance(ops, list) or not ops:
+            return Response(
+                {"detail": "Le champ 'operations' doit être une liste non-vide."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        all_entries = list(ClassScheduleEntry.objects.select_related("school_class", "teacher").all())
-        sim_entries = {
-            e.id: {
-                "id": e.id,
-                "school_class_id": e.school_class_id,
-                "teacher_id": e.teacher_id,
-                "weekday": e.weekday,
-                "starts_at": e.starts_at,
-                "ends_at": e.ends_at,
-                "start_min": _to_minutes_from_timeobj(e.starts_at) if e.starts_at else None,
-                "end_min":   _to_minutes_from_timeobj(e.ends_at)   if e.ends_at   else None,
-            }
-            for e in all_entries
-        }
-
-        slots       = _load_slots_ordered()
-        idx_to_slot = {s["idx"]: s for s in slots}
-        errors      = []
-        preview     = {}
-
-        for op in ops:
-            eid = op.get("entry_id")
-            if eid is None:
-                errors.append({"op": op, "error": "entry_id requis"})
-                continue
-            if eid not in sim_entries:
-                errors.append({"entry_id": eid, "error": "entry introuvable"})
-                continue
-
-            curr = sim_entries[eid]
-            orig = {"weekday": curr["weekday"], "starts_at": curr["starts_at"], "ends_at": curr["ends_at"]}
-
-            target_slot_idx = op.get("target_slot_idx")
-            target_weekday  = op.get("target_weekday")
-            target_start    = op.get("target_start")
-            target_end      = op.get("target_end")
-
-            if target_slot_idx is not None:
-                try:
-                    target_slot_idx = int(target_slot_idx)
-                except Exception:
-                    errors.append({"entry_id": eid, "error": "target_slot_idx invalide"}); continue
-                slot = idx_to_slot.get(target_slot_idx)
-                if not slot:
-                    errors.append({"entry_id": eid, "error": f"slot_idx {target_slot_idx} introuvable"}); continue
-                new_weekday, new_start_min, new_end_min = slot["weekday"], slot["start"], slot["end"]
-                new_st_time, new_end_time = slot["db_obj"].start_time, slot["db_obj"].end_time
-            else:
-                if target_weekday is None or target_start is None or target_end is None:
-                    errors.append({"entry_id": eid, "error": "target_slot_idx ou (target_weekday + target_start + target_end) requis"}); continue
-                try:
-                    new_weekday = int(target_weekday)
-                except Exception:
-                    errors.append({"entry_id": eid, "error": "target_weekday invalide"}); continue
-                st_obj = _parse_time_str_or_obj(target_start)
-                en_obj = _parse_time_str_or_obj(target_end)
-                if st_obj is None or en_obj is None:
-                    errors.append({"entry_id": eid, "error": "format horaire invalide (HH:MM)"}); continue
-                new_start_min = _to_minutes_from_timeobj(st_obj)
-                new_end_min   = _to_minutes_from_timeobj(en_obj)
-                if new_end_min <= new_start_min:
-                    errors.append({"entry_id": eid, "error": "target_end doit être > target_start"}); continue
-                new_st_time, new_end_time = st_obj, en_obj
-
-            curr.update({"weekday": new_weekday, "starts_at": new_st_time, "ends_at": new_end_time, "start_min": new_start_min, "end_min": new_end_min})
-            preview[eid] = {
-                "from": {"weekday": orig["weekday"], "starts_at": str(orig["starts_at"]), "ends_at": str(orig["ends_at"])},
-                "to":   {"weekday": new_weekday,     "starts_at": str(new_st_time),       "ends_at": str(new_end_time)},
-            }
-
-        per_teacher_day = defaultdict(list)
-        per_class_day   = defaultdict(list)
-        for e in sim_entries.values():
-            if e["teacher_id"] is not None and e["start_min"] is not None:
-                per_teacher_day[(e["teacher_id"], e["weekday"])].append(e)
-            if e["school_class_id"] is not None and e["start_min"] is not None:
-                per_class_day[(e["school_class_id"], e["weekday"])].append(e)
-
-        def find_overlaps(lst):
-            ov, ents = [], sorted(lst, key=lambda x: x["start_min"] or 0)
-            for i in range(len(ents) - 1):
-                a, b = ents[i], ents[i + 1]
-                if a["start_min"] and b["start_min"] and _overlaps(a["weekday"], a["start_min"], a["end_min"], b["weekday"], b["start_min"], b["end_min"]):
-                    ov.append((a, b))
-            return ov
-
-        teacher_conflicts = [
-            {"teacher_id": tid, "weekday": day, "overlaps": [{"entry_ids": [a["id"], b["id"]], "class_ids": [a["school_class_id"], b["school_class_id"]], "times": [f"{a['starts_at']} - {a['ends_at']}", f"{b['starts_at']} - {b['ends_at']}"]} for a, b in find_overlaps(ents)]}
-            for (tid, day), ents in per_teacher_day.items() if find_overlaps(ents)
-        ]
-        class_conflicts = [
-            {"class_id": cid, "weekday": day, "overlaps": [{"entry_ids": [a["id"], b["id"]], "teacher_ids": [a["teacher_id"], b["teacher_id"]], "times": [f"{a['starts_at']} - {a['ends_at']}", f"{b['starts_at']} - {b['ends_at']}"]} for a, b in find_overlaps(ents)]}
-            for (cid, day), ents in per_class_day.items() if find_overlaps(ents)
-        ]
-
-        return Response({
-            "valid": not errors and not teacher_conflicts and not class_conflicts,
-            "errors": errors,
-            "conflicts": {"teacher_conflicts": teacher_conflicts, "class_conflicts": class_conflicts},
-            "preview": preview,
-        }, status=status.HTTP_200_OK)
+        report = validate_batch_operations(ops)
+        return Response(report, status=status.HTTP_200_OK)
 
 
 class TimetableBatchApplyView(APIView):
+    """
+    POST /timetable/batch-apply/
+
+    Valide puis applique un batch de déplacements.
+    Atomique : soit tout passe, soit rien n'est modifié.
+    Re-valide dans la transaction après save — rollback automatique si conflit.
+
+    Body :
+    {
+        "operations": [...],
+        "force": false
+    }
+
+    Réponse :
+    {
+        "valid": true|false,
+        "hard_errors": [...],
+        "soft_warnings": [...],
+        "preview": {...},
+        "applied": [42, 55],
+        "db_errors": [...],
+        "message": "..."
+    }
+
+    Codes HTTP :
+      200  → tout bon
+      400  → erreurs de parsing ou conflits durs
+      403  → non-admin
+      500  → erreur DB inattendue
+    """
     permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
+        if not (request.user.is_staff or request.user.is_superuser):
+            return Response(
+                {
+                    "detail": "Seuls les administrateurs peuvent modifier l'emploi du temps."
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         payload = request.data or {}
-        ops     = payload.get("operations")
-        persist = bool(payload.get("persist", False))
+        ops = payload.get("operations")
+        force = bool(payload.get("force", False))
 
-        if not isinstance(ops, list):
-            return Response({"detail": "operations doit être une liste."}, status=status.HTTP_400_BAD_REQUEST)
-        if persist and not (request.user.is_staff or request.user.is_superuser):
-            return Response({"detail": "Seuls les admins peuvent appliquer (persist=True)."}, status=status.HTTP_403_FORBIDDEN)
+        if not isinstance(ops, list) or not ops:
+            return Response(
+                {"detail": "Le champ 'operations' doit être une liste non-vide."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        validation_response = TimetableBatchValidateView().post(request)
-        if validation_response.status_code != 200:
-            return validation_response
-        validation_data = validation_response.data
+        result = apply_batch_operations(ops, force=force)
 
-        if not validation_data.get("valid", False):
-            return Response({"applied": [], "errors": ["Validation failed."], "validation": validation_data}, status=status.HTTP_400_BAD_REQUEST)
+        if not result["valid"]:
+            http_status = (
+                status.HTTP_500_INTERNAL_SERVER_ERROR
+                if result.get("db_errors")
+                else status.HTTP_400_BAD_REQUEST
+            )
+            return Response(result, status=http_status)
 
-        applied   = []
-        db_errors = []
+        return Response(result, status=status.HTTP_200_OK)
+
+
+
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  academics/views.py — Ajouter cette vue
+# ─────────────────────────────────────────────────────────────────────────────
+#
+#  POST /api/academics/class-subjects/copy-config/
+#
+#  Copie la configuration complète des matières (ClassSubject) d'une classe
+#  source vers une ou plusieurs classes cibles.
+#
+#  Body :
+#  {
+#      "source_class_id": 3,
+#      "target_class_ids": [7, 8, 9],
+#      "overwrite": false   // si true, écrase les ClassSubject existants
+#  }
+#
+#  Comportement par défaut (overwrite=false) :
+#    - Si la classe cible a déjà un ClassSubject pour cette matière → on le saute
+#    - On ne copie que ce qui manque
+#
+#  Comportement overwrite=true :
+#    - Supprime tous les ClassSubject existants de la classe cible
+#    - Recopie tout depuis la source
+#    ATTENTION : supprime aussi les associations prof si elles sont liées
+#
+#  Réponse :
+#  {
+#      "results": [
+#          {
+#              "target_class_id": 7,
+#              "target_class_name": "2ndB2",
+#              "created": 12,
+#              "skipped": 0,
+#              "overwritten": 0,
+#              "errors": []
+#          },
+#          ...
+#      ],
+#      "summary": {
+#          "total_created": 24,
+#          "total_skipped": 0,
+#          "total_errors": 0
+#      }
+#  }
+# ─────────────────────────────────────────────────────────────────────────────
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from django.db import transaction
+
+from academics.models import ClassSubject, SchoolClass
+
+
+class CopyClassConfigView(APIView):
+    """
+    Copie la configuration des matières d'une classe vers d'autres classes.
+    Réservé aux administrateurs.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        if not (request.user.is_staff or request.user.is_superuser):
+            return Response(
+                {"detail": "Seuls les administrateurs peuvent copier une configuration."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        payload          = request.data or {}
+        source_class_id  = payload.get("source_class_id")
+        target_class_ids = payload.get("target_class_ids", [])
+        overwrite        = bool(payload.get("overwrite", False))
+
+        # ── Validation des entrées ────────────────────────────────────────────
+        if not source_class_id:
+            return Response(
+                {"detail": "source_class_id est obligatoire."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not isinstance(target_class_ids, list) or not target_class_ids:
+            return Response(
+                {"detail": "target_class_ids doit être une liste non-vide."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Récupérer la classe source
         try:
-            with transaction.atomic():
-                for op in ops:
-                    eid = op.get("entry_id")
-                    try:
-                        entry = ClassScheduleEntry.objects.select_for_update().get(pk=eid)
-                    except ClassScheduleEntry.DoesNotExist:
-                        db_errors.append({"entry_id": eid, "error": "entry introuvable au moment de l'application"})
-                        continue
+            source_class = SchoolClass.objects.get(id=source_class_id)
+        except SchoolClass.DoesNotExist:
+            return Response(
+                {"detail": f"Classe source (id={source_class_id}) introuvable."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
-                    target_slot_idx = op.get("target_slot_idx")
-                    target_weekday  = op.get("target_weekday")
-                    target_start    = op.get("target_start")
-                    target_end      = op.get("target_end")
+        # Récupérer les ClassSubjects de la source
+        source_configs = list(
+            ClassSubject.objects.filter(school_class=source_class)
+            .select_related("subject")
+        )
+        if not source_configs:
+            return Response(
+                {
+                    "detail": f"La classe source '{source_class}' n'a aucune matière configurée.",
+                    "source_class_id": source_class_id,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-                    if target_slot_idx is not None:
-                        slots = _load_slots_ordered()
-                        if target_slot_idx < 0 or target_slot_idx >= len(slots):
-                            db_errors.append({"entry_id": eid, "error": f"slot_idx {target_slot_idx} introuvable"}); continue
-                        s = slots[target_slot_idx]["db_obj"]
-                        entry.weekday, entry.starts_at, entry.ends_at = s.day, s.start_time, s.end_time
-                        entry.save(update_fields=["weekday", "starts_at", "ends_at"])
-                        applied.append(entry.id)
-                    else:
-                        if target_weekday is None or target_start is None or target_end is None:
-                            db_errors.append({"entry_id": eid, "error": "target invalide"}); continue
-                        st_obj = _parse_time_str_or_obj(target_start)
-                        en_obj = _parse_time_str_or_obj(target_end)
-                        if st_obj is None or en_obj is None:
-                            db_errors.append({"entry_id": eid, "error": "format horaire invalide"}); continue
-                        entry.weekday, entry.starts_at, entry.ends_at = int(target_weekday), st_obj, en_obj
-                        entry.save(update_fields=["weekday", "starts_at", "ends_at"])
-                        applied.append(entry.id)
-        except Exception as exc:
-            return Response({"detail": "Transaction annulée", "exception": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        results = []
+        total_created   = 0
+        total_skipped   = 0
+        total_errors    = 0
 
-        return Response({"applied": applied, "errors": db_errors, "validation": validation_data}, status=status.HTTP_200_OK)
+        for target_id in target_class_ids:
+            result = {
+                "target_class_id":   target_id,
+                "target_class_name": None,
+                "created":           0,
+                "skipped":           0,
+                "overwritten":       0,
+                "errors":            [],
+            }
+
+            # Récupérer la classe cible
+            try:
+                target_class = SchoolClass.objects.get(id=target_id)
+            except SchoolClass.DoesNotExist:
+                result["errors"].append(f"Classe cible (id={target_id}) introuvable.")
+                total_errors += 1
+                results.append(result)
+                continue
+
+            if target_id == source_class_id:
+                result["errors"].append("La classe cible est identique à la source.")
+                results.append(result)
+                continue
+
+            result["target_class_name"] = str(target_class)
+
+            try:
+                with transaction.atomic():
+                    if overwrite:
+                        # Supprimer toute la config existante de la cible
+                        deleted_count, _ = ClassSubject.objects.filter(
+                            school_class=target_class
+                        ).delete()
+                        result["overwritten"] = deleted_count
+
+                    # Récupérer les matières déjà présentes dans la cible
+                    # (utile uniquement si overwrite=False)
+                    existing_subject_ids = set(
+                        ClassSubject.objects.filter(school_class=target_class)
+                        .values_list("subject_id", flat=True)
+                    )
+
+                    to_create = []
+                    for cs in source_configs:
+                        if cs.subject_id in existing_subject_ids:
+                            # Matière déjà configurée et overwrite=False → on saute
+                            result["skipped"] += 1
+                            total_skipped += 1
+                            continue
+
+                        to_create.append(ClassSubject(
+                            school_class   = target_class,
+                            subject        = cs.subject,
+                            coefficient    = cs.coefficient,
+                            hours_per_week = cs.hours_per_week,
+                            is_optional    = cs.is_optional,
+                        ))
+
+                    # Bulk create pour la performance
+                    if to_create:
+                        ClassSubject.objects.bulk_create(to_create)
+                        result["created"] = len(to_create)
+                        total_created    += len(to_create)
+
+            except Exception as exc:
+                result["errors"].append(str(exc))
+                total_errors += 1
+
+            results.append(result)
+
+        return Response(
+            {
+                "source_class_id":   source_class_id,
+                "source_class_name": str(source_class),
+                "source_subjects_count": len(source_configs),
+                "overwrite": overwrite,
+                "results": results,
+                "summary": {
+                    "total_created": total_created,
+                    "total_skipped": total_skipped,
+                    "total_errors":  total_errors,
+                },
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+#  academics/urls.py — Ajouter cette ligne dans urlpatterns
+# ─────────────────────────────────────────────────────────────────────────────
+#
+#  from academics.views import CopyClassConfigView
+#
+#  path('class-subjects/copy-config/', CopyClassConfigView.as_view(),
+#       name='copy-class-config'),
+#
+# ─────────────────────────────────────────────────────────────────────────────
+#
+#  EXEMPLES D'UTILISATION
+# ─────────────────────────────────────────────────────────────────────────────
+#
+#  1. Copier la config de la classe 3 vers les classes 7, 8, 9
+#     (sans écraser ce qui existe déjà) :
+#
+#     POST /api/academics/class-subjects/copy-config/
+#     {
+#         "source_class_id": 3,
+#         "target_class_ids": [7, 8, 9]
+#     }
+#
+#  2. Copier en écrasant toute la config existante des cibles :
+#
+#     POST /api/academics/class-subjects/copy-config/
+#     {
+#         "source_class_id": 3,
+#         "target_class_ids": [7, 8, 9],
+#         "overwrite": true
+#     }
+#
+#  3. Dupliquer vers une seule classe :
+#
+#     POST /api/academics/class-subjects/copy-config/
+#     {
+#         "source_class_id": 3,
+#         "target_class_ids": [10]
+#     }
+#
+# ─────────────────────────────────────────────────────────────────────────────
 # ─────────────────────────────────────────────────────────────────────────────
 #  ANNOUNCEMENTS
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1909,3 +2102,4 @@ class AnnouncementViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
+    

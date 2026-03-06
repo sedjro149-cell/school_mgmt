@@ -495,13 +495,14 @@ class TeacherViewSet(viewsets.ModelViewSet):
     serializer_class = TeacherFullSerializer
 
     filter_backends  = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = {"subject__id": ["exact"], "classes__id": ["exact"]}
+    filterset_fields = {"subject__id": ["exact"], "classes__id": ["exact"], "id": ["exact"],}
     search_fields    = [
         "user__first_name",
         "user__last_name",
         "user__username",
         "subject__name",
         "classes__name",
+        "id",
     ]
     ordering_fields = ["user__last_name", "subject__name", "id"]
 
@@ -529,6 +530,83 @@ class TeacherViewSet(viewsets.ModelViewSet):
         if self.request.query_params.get("no_pagination") == "1":
             return None
         return super().paginate_queryset(queryset)
+    
+    @action(detail=True, methods=["patch"], url_path="assign-classes")
+    def assign_classes(self, request, pk=None):
+        """
+        Endpoint dédié à l'assignation des classes.
+        Reçoit : { "class_ids": [1, 2, 3] }
+        Bypasse TeacherWriteSerializer — valide R1 et R2 directement.
+        """
+        teacher = self.get_object()  # gère 404 automatiquement
+        raw_ids = request.data.get("class_ids", [])
+
+        # ── Validation de base ────────────────────────────────────────────────
+        if not isinstance(raw_ids, list):
+            return Response(
+                {"detail": "class_ids doit être une liste d'entiers."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Résolution des objets SchoolClass
+        from academics.models import ClassSubject, SchoolClass
+
+        classes_qs = SchoolClass.objects.filter(pk__in=raw_ids)
+        found_ids  = set(classes_qs.values_list("pk", flat=True))
+        missing    = [cid for cid in raw_ids if cid not in found_ids]
+
+        if missing:
+            return Response(
+                {"detail": f"Classes introuvables : {missing}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        classes_to_set = list(classes_qs)
+        subject        = teacher.subject
+
+        # ── R1 + R2 ──────────────────────────────────────────────────────────
+        errors = []
+
+        if subject:
+            for cls in classes_to_set:
+                # R2 : la matière doit être configurée dans cette classe
+                if not ClassSubject.objects.filter(
+                    school_class=cls, subject=subject
+                ).exists():
+                    errors.append(
+                        f"La matière « {subject.name} » n'est pas configurée "
+                        f"dans la classe « {cls.name} »."
+                    )
+                    continue  # R1 inutile si R2 échoue
+
+                # R1 : aucun autre prof de même matière dans cette classe
+                conflict = (
+                    Teacher.objects
+                    .filter(subject=subject, classes=cls)
+                    .exclude(pk=teacher.pk)
+                    .select_related("user")
+                    .first()
+                )
+                if conflict:
+                    errors.append(
+                        f"La classe « {cls.name} » a déjà un professeur de "
+                        f"« {subject.name} » : "
+                        f"{conflict.first_name} {conflict.last_name}."
+                    )
+
+        if errors:
+            return Response(
+                {"classes": errors},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # ── Tout valide → appliquer ───────────────────────────────────────────
+        teacher.classes.set(classes_to_set)
+
+        # Retourner le prof complet mis à jour
+        from .serializers import TeacherFullSerializer
+        serializer = TeacherFullSerializer(teacher, context={"request": request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=["get"], url_path=r"by-class/(?P<class_id>[^/.]+)")
     def by_class(self, request, class_id=None):

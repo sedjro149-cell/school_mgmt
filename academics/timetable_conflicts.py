@@ -1,420 +1,483 @@
-# academics/services/timetable_conflicts.py
-import random
+# academics/timetable_conflicts.py
+"""
+Détection et résolution des conflits d'emploi du temps.
+
+CORRECTIONS APPLIQUÉES :
+  - is_slot_free remplacé par une vérification temporelle réelle (tous les overlaps)
+  - Relocation uniquement vers des slots de MÊME durée (préserve les quotas)
+  - Re-vérification complète après chaque déplacement
+  - Transaction atomique englobant TOUS les saves
+  - Rapport détaillé distinguant erreurs, résolutions, et non-résolus
+"""
 import logging
 from collections import defaultdict
-from typing import List, Dict, Tuple, Optional
+from typing import Dict, List, Optional, Tuple
 
 from django.db import transaction
 
-from academics.models import ClassScheduleEntry, TimeSlot, SchoolClass, ClassSubject
-from core.models import Teacher
+from academics.models import ClassScheduleEntry, TimeSlot
 
 logger = logging.getLogger(__name__)
 
 
-# ---------- Helpers to load time slots (same logic as in generator) ----------
-def _to_minutes(t):
+# ─────────────────────────────────────────────────────────────────────────────
+#  Helpers temporels
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _to_min(t) -> int:
+    """Convertit un objet time en minutes depuis minuit."""
     return t.hour * 60 + t.minute
 
 
-def _load_slots():
-    """Retourne (slots, slots_by_day, slot_conflicts) identiques à timetable generator."""
-    time_slots = list(TimeSlot.objects.all().order_by("day", "start_time"))
+def _duration(entry) -> int:
+    return _to_min(entry.ends_at) - _to_min(entry.starts_at)
+
+
+def _time_overlaps(a_start: int, a_end: int, b_start: int, b_end: int) -> bool:
+    """Vrai si deux intervalles [a_start, a_end[ et [b_start, b_end[ se chevauchent."""
+    return a_start < b_end and b_start < a_end
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  Vérification de disponibilité (correction centrale)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _is_free(
+    all_entries: List,
+    exclude_id: int,
+    teacher_id: Optional[int],
+    class_id: int,
+    weekday: int,
+    start_min: int,
+    end_min: int,
+) -> bool:
+    """
+    Vérifie qu'aucune entrée existante (hors exclude_id) ne chevauche
+    la fenêtre (weekday, start_min, end_min) pour ce prof ET cette classe.
+
+    C'est le remplacement correct de l'ancienne is_slot_free qui ne
+    vérifiait que le slot exact, pas les chevauchements temporels réels.
+    """
+    for e in all_entries:
+        if e.id == exclude_id:
+            continue
+        if e.weekday != weekday:
+            continue
+        e_start = _to_min(e.starts_at)
+        e_end = _to_min(e.ends_at)
+        if not _time_overlaps(start_min, end_min, e_start, e_end):
+            continue
+        # Conflit prof
+        if teacher_id and e.teacher_id == teacher_id:
+            return False
+        # Conflit classe
+        if e.school_class_id == class_id:
+            return False
+    return True
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  Chargement des slots disponibles
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _load_timeslots() -> List[Dict]:
+    """Retourne tous les TimeSlots sous forme de dicts enrichis."""
     slots = []
-    for idx, slot in enumerate(time_slots):
-        start_min = _to_minutes(slot.start_time)
-        end_min = _to_minutes(slot.end_time)
-        dur = end_min - start_min
-        if dur <= 0:
-            # ignore invalid slots but log
-            logger.warning("TimeSlot id=%s a durée non positive, ignoré", getattr(slot, "id", None))
+    for s in TimeSlot.objects.all().order_by("day", "start_time"):
+        start_min = _to_min(s.start_time)
+        end_min = _to_min(s.end_time)
+        if end_min <= start_min:
             continue
         slots.append({
-            "idx": idx,
-            "db_obj": slot,
-            "weekday": slot.day,
-            "start": start_min,
-            "end": end_min,
-            "dur": dur,
+            "db_obj": s,
+            "weekday": s.day,
+            "start_min": start_min,
+            "end_min": end_min,
+            "dur": end_min - start_min,
         })
-
-    slots_by_day = defaultdict(list)
-    for s in slots:
-        slots_by_day[s["weekday"]].append(s["idx"])
-
-    slot_conflicts = {s["idx"]: set() for s in slots}
-    for day, idxs in slots_by_day.items():
-        for a in range(len(idxs)):
-            i = idxs[a]
-            s_i = slots[i]
-            for b in range(a + 1, len(idxs)):
-                j = idxs[b]
-                s_j = slots[j]
-                if (s_i["start"] < s_j["end"]) and (s_j["start"] < s_i["end"]):
-                    slot_conflicts[i].add(j)
-                    slot_conflicts[j].add(i)
-
-    return slots, slots_by_day, slot_conflicts
+    return slots
 
 
-# ---------- Map DB entry -> slot_idx (if exact match) ----------
-def map_entry_to_slot_idx(entry: ClassScheduleEntry, slots: List[dict]) -> Optional[int]:
-    """Tente de retrouver index du TimeSlot correspondant en comparant weekday/start/end strictement."""
-    for s in slots:
-        if s["weekday"] == entry.weekday and s["db_obj"].start_time == entry.starts_at and s["db_obj"].end_time == entry.ends_at:
-            return s["idx"]
-    return None
+# ─────────────────────────────────────────────────────────────────────────────
+#  Détection
+# ─────────────────────────────────────────────────────────────────────────────
 
-
-# ---------- Detection ----------
 def detect_teacher_conflicts() -> Dict:
     """
-    Balaye tous les ClassScheduleEntry en base et renvoie :
-      - teacher_conflicts: liste de dict {teacher_id, teacher_name, day, overlapping_pairs: [entry1_repr, entry2_repr, ...]}
-      - class_conflicts: (optionnel: on signale si une classe a deux choses identiques)
-      - meta: counts, sample rows, etc.
+    Balaye tous les ClassScheduleEntry et retourne :
+      - teacher_conflicts  : chevauchements horaires entre profs
+      - class_conflicts    : chevauchements horaires entre classes
+      - c2_violations      : même matière deux fois le même jour (même classe)
+      - c3_violations      : même matière sur deux jours consécutifs (même classe)
+      - meta               : compteurs
     """
-    slots, slots_by_day, slot_conflicts = _load_slots()
+    entries = list(
+        ClassScheduleEntry.objects.select_related("school_class", "subject", "teacher").all()
+    )
 
-    # Récupérer les entrées persistées
-    entries = list(ClassScheduleEntry.objects.select_related("school_class", "subject", "teacher").all())
-
-    # Build per-teacher per-day list (use teacher_id to be robust)
     by_teacher_day = defaultdict(list)
+    by_class_day = defaultdict(list)
+    by_class_subject_day = defaultdict(list)
+    by_class_subject = defaultdict(set)
+
     for e in entries:
-        t_id = e.teacher_id  # peut être None
-        if not t_id:
-            continue
-        by_teacher_day[(t_id, e.weekday)].append(e)
+        if e.teacher_id and e.starts_at and e.ends_at:
+            by_teacher_day[(e.teacher_id, e.weekday)].append(e)
+        if e.school_class_id and e.starts_at and e.ends_at:
+            by_class_day[(e.school_class_id, e.weekday)].append(e)
+        if e.school_class_id and e.subject_id:
+            by_class_subject_day[(e.school_class_id, e.subject_id, e.weekday)].append(e)
+            by_class_subject[(e.school_class_id, e.subject_id)].add(e.weekday)
+
+    def _find_overlaps_in_group(ents):
+        """Toutes les paires qui se chevauchent (O(n²) mais n petit)."""
+        pairs = []
+        for i in range(len(ents)):
+            for j in range(i + 1, len(ents)):
+                a, b = ents[i], ents[j]
+                if _time_overlaps(_to_min(a.starts_at), _to_min(a.ends_at),
+                                  _to_min(b.starts_at), _to_min(b.ends_at)):
+                    pairs.append((a, b))
+        return pairs
+
+    def _entry_repr(e):
+        return {
+            "id": e.id,
+            "class_id": e.school_class_id,
+            "class_name": str(e.school_class),
+            "subject_id": e.subject_id,
+            "subject_name": str(e.subject),
+            "teacher_id": e.teacher_id,
+            "teacher_name": str(e.teacher) if e.teacher else None,
+            "weekday": e.weekday,
+            "starts_at": str(e.starts_at),
+            "ends_at": str(e.ends_at),
+        }
 
     teacher_conflicts = []
-    class_conflicts = []
-
-    # Check teacher overlaps by comparing time intervals (robuste si timeslot mapping absent)
-    for (t_id, day), ents in by_teacher_day.items():
-        # sort by start
-        ents_sorted = sorted(ents, key=lambda x: x.starts_at)
-        overlaps = []
-        for i in range(len(ents_sorted) - 1):
-            e1 = ents_sorted[i]; e2 = ents_sorted[i + 1]
-            # chevauchement si e1.ends > e2.starts (time objects comparable)
-            if e1.ends_at > e2.starts_at:
-                overlaps.append((e1, e2))
-        if overlaps:
+    for (tid, day), ents in by_teacher_day.items():
+        pairs = _find_overlaps_in_group(ents)
+        if pairs:
             teacher_conflicts.append({
-                "teacher_id": t_id,
-                "teacher_name": str(ents_sorted[0].teacher) if getattr(ents_sorted[0], "teacher", None) else None,
+                "teacher_id": tid,
+                "teacher_name": str(ents[0].teacher) if ents[0].teacher else None,
                 "weekday": day,
-                "overlaps": [
-                    {
-                        "entry_ids": [o[0].id, o[1].id],
-                        "class_ids": [o[0].school_class_id, o[1].school_class_id],
-                        "class_names": [str(o[0].school_class), str(o[1].school_class)],
-                        "subject_ids": [o[0].subject_id, o[1].subject_id],
-                        "subject_names": [str(o[0].subject), str(o[1].subject)],
-                        "times": [str(o[0].starts_at) + " - " + str(o[0].ends_at), str(o[1].starts_at) + " - " + str(o[1].ends_at)]
-                    } for o in overlaps
-                ]
+                "overlapping_pairs": [
+                    {"entry_a": _entry_repr(a), "entry_b": _entry_repr(b)}
+                    for a, b in pairs
+                ],
             })
 
-    # Check class overlaps too (defensive)
-    by_class_day = defaultdict(list)
-    for e in entries:
-        by_class_day[(e.school_class_id, e.weekday)].append(e)
+    class_conflicts = []
     for (cid, day), ents in by_class_day.items():
-        ents_sorted = sorted(ents, key=lambda x: x.starts_at)
-        overlaps = []
-        for i in range(len(ents_sorted) - 1):
-            e1 = ents_sorted[i]; e2 = ents_sorted[i + 1]
-            if e1.ends_at > e2.starts_at:
-                overlaps.append((e1, e2))
-        if overlaps:
+        pairs = _find_overlaps_in_group(ents)
+        if pairs:
             class_conflicts.append({
                 "class_id": cid,
-                "class_name": str(ents_sorted[0].school_class),
+                "class_name": str(ents[0].school_class),
                 "weekday": day,
-                "overlaps": [
-                    {
-                        "entry_ids": [o[0].id, o[1].id],
-                        "subject_ids": [o[0].subject_id, o[1].subject_id],
-                        "subject_names": [str(o[0].subject), str(o[1].subject)],
-                        "teacher_ids": [o[0].teacher_id, o[1].teacher_id],
-                        "teacher_names": [str(o[0].teacher), str(o[1].teacher)],
-                        "times": [str(o[0].starts_at) + " - " + str(o[0].ends_at), str(o[1].starts_at) + " - " + str(o[1].ends_at)]
-                    } for o in overlaps
-                ]
+                "overlapping_pairs": [
+                    {"entry_a": _entry_repr(a), "entry_b": _entry_repr(b)}
+                    for a, b in pairs
+                ],
             })
 
-    result = {
+    # C2 : même matière deux fois le même jour
+    c2_violations = []
+    for (cid, sid, day), ents in by_class_subject_day.items():
+        if len(ents) > 1:
+            c2_violations.append({
+                "class_id": cid,
+                "subject_id": sid,
+                "weekday": day,
+                "count": len(ents),
+                "entry_ids": [e.id for e in ents],
+                "message": f"La matière apparaît {len(ents)} fois le même jour pour cette classe.",
+            })
+
+    # C3 : même matière sur jours consécutifs
+    c3_violations = []
+    for (cid, sid), days in by_class_subject.items():
+        sorted_days = sorted(days)
+        for i in range(len(sorted_days) - 1):
+            if sorted_days[i + 1] - sorted_days[i] == 1:
+                d1, d2 = sorted_days[i], sorted_days[i + 1]
+                entries_d1 = by_class_subject_day.get((cid, sid, d1), [])
+                entries_d2 = by_class_subject_day.get((cid, sid, d2), [])
+                c3_violations.append({
+                    "class_id": cid,
+                    "subject_id": sid,
+                    "days": [d1, d2],
+                    "entry_ids_day1": [e.id for e in entries_d1],
+                    "entry_ids_day2": [e.id for e in entries_d2],
+                    "message": "La matière est programmée sur deux jours consécutifs.",
+                })
+
+    return {
         "teacher_conflicts": teacher_conflicts,
         "class_conflicts": class_conflicts,
+        "c2_violations": c2_violations,
+        "c3_violations": c3_violations,
         "meta": {
             "num_entries": len(entries),
             "num_teacher_conflicts": len(teacher_conflicts),
-            "num_class_conflicts": len(class_conflicts)
-        }
+            "num_class_conflicts": len(class_conflicts),
+            "num_c2_violations": len(c2_violations),
+            "num_c3_violations": len(c3_violations),
+        },
     }
-    return result
 
 
-# ---------- Simple resolver (greedy relocation + swap) ----------
-def attempt_resolve_conflicts(dry_run: bool = True, persist: bool = False, max_tries: int = 200) -> Dict:
+# ─────────────────────────────────────────────────────────────────────────────
+#  Résolution automatique (corrigée)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def attempt_resolve_conflicts(dry_run: bool = True) -> Dict:
     """
-    Tente de résoudre automatiquement les conflits enseignants détectés.
-    - dry_run=True : renvoie les modifications proposées sans toucher la DB
-    - persist=True : applique les changements dans une transaction (attention!)
-    Retour : rapport contenant 'resolved', 'unresolved', 'proposals'
+    Tente de résoudre les conflits DURS (chevauchements prof/classe).
+    NE touche PAS aux violations C2/C3 — celles-ci sont signalées à l'admin
+    pour intervention manuelle via le batch apply.
+
+    CORRECTIONS par rapport à l'ancienne version :
+      1. Vérification temporelle réelle (pas slot_key)
+      2. Relocation uniquement vers slot de MÊME durée (préserve quotas)
+      3. Re-vérification après chaque déplacement sur la liste en mémoire
+      4. Un seul transaction.atomic() englobant tous les saves
+      5. Rollback complet si un save échoue
+
+    Paramètres :
+      dry_run=True  → calcule et retourne les proposals sans toucher la DB
+      dry_run=False → applique les changements dans une transaction atomique
+
+    Retour :
+      resolved        : conflits résolus avec détail du déplacement
+      unresolved      : conflits que le greedy n'a pas pu résoudre
+      proposals       : liste des changements (entry_id, from, to)
+      applied_count   : nombre d'entrées modifiées en DB (0 si dry_run)
+      errors          : erreurs survenues
     """
-    slots, slots_by_day, slot_conflicts = _load_slots()
+    timeslots = _load_timeslots()
 
-    # build mapping slot index by (weekday, start_time, end_time) for quick lookup
-    slot_idx_map = {}
-    for s in slots:
-        slot_idx_map[(s["weekday"], s["db_obj"].start_time, s["db_obj"].end_time)] = s["idx"]
+    # Travailler sur une copie en mémoire des entrées (on ne touche pas la DB avant la fin)
+    db_entries = list(
+        ClassScheduleEntry.objects.select_related("school_class", "subject", "teacher").all()
+    )
 
-    # load DB entries and index them
-    entries = list(ClassScheduleEntry.objects.select_related("school_class", "subject", "teacher").all())
-    entry_by_id = {e.id: e for e in entries}
+    # Représentation mémoire mutable : on travaille sur des dicts
+    # pour pouvoir simuler les déplacements sans toucher la DB
+    working = {}  # id → dict avec les champs pertinents
+    for e in db_entries:
+        working[e.id] = {
+            "id": e.id,
+            "db_ref": e,                         # référence à l'objet Django
+            "teacher_id": e.teacher_id,
+            "class_id": e.school_class_id,
+            "subject_id": e.subject_id,
+            "weekday": e.weekday,
+            "starts_at": e.starts_at,
+            "ends_at": e.ends_at,
+            "start_min": _to_min(e.starts_at),
+            "end_min": _to_min(e.ends_at),
+            "dur": _duration(e),
+            "modified": False,
+        }
 
-    # build global schedule map: slot_idx -> {"teacher":{tid:entry_id}, "class":{cid:entry_id}}
-    global_schedule = {}
-    for e in entries:
-        key = (e.weekday, e.starts_at, e.ends_at)
-        slot_idx = slot_idx_map.get(key)
-        # if slot_idx missing, we will still keep a fallback mapping by time-string to detect overlaps
-        slot_key = slot_idx if slot_idx is not None else f"time::{e.weekday}::{e.starts_at}::{e.ends_at}"
-        slot_map = global_schedule.setdefault(slot_key, {"teacher": {}, "class": {}, "entries": []})
-        if e.teacher_id:
-            slot_map["teacher"].setdefault(e.teacher_id, []).append(e.id)
-        slot_map["class"].setdefault(e.school_class_id, []).append(e.id)
-        slot_map["entries"].append(e.id)
+    def working_as_entries():
+        """Vue des entrées de travail comme liste de pseudo-entries pour _is_free."""
+        class _E:
+            def __init__(self, w):
+                self.id = w["id"]
+                self.teacher_id = w["teacher_id"]
+                self.school_class_id = w["class_id"]
+                self.weekday = w["weekday"]
+                self.starts_at = w["starts_at"]
+                self.ends_at = w["ends_at"]
+        return [_E(w) for w in working.values()]
 
-    # detect teacher conflicts (list of pairs to resolve)
-    conflicts = []
-    teacher_day_map = defaultdict(list)
-    for e in entries:
-        if not e.teacher_id:
-            continue
-        teacher_day_map[(e.teacher_id, e.weekday)].append(e)
-    for (tid, day), ents in teacher_day_map.items():
-        ents_sorted = sorted(ents, key=lambda x: x.starts_at)
-        for i in range(len(ents_sorted) - 1):
-            a = ents_sorted[i]; b = ents_sorted[i + 1]
-            if a.ends_at > b.starts_at:
-                conflicts.append({"teacher_id": tid, "weekday": day, "pair": (a.id, b.id)})
+    def find_teacher_conflicts():
+        """Retourne les paires (id_a, id_b) en conflit enseignant."""
+        by_teacher_day = defaultdict(list)
+        for w in working.values():
+            if w["teacher_id"]:
+                by_teacher_day[(w["teacher_id"], w["weekday"])].append(w)
+        conflicts = []
+        for ents in by_teacher_day.values():
+            for i in range(len(ents)):
+                for j in range(i + 1, len(ents)):
+                    a, b = ents[i], ents[j]
+                    if _time_overlaps(a["start_min"], a["end_min"], b["start_min"], b["end_min"]):
+                        conflicts.append((a["id"], b["id"]))
+        return conflicts
+
+    # Candidats : slots de même durée que l'entrée à déplacer
+    def candidate_slots_for(w_entry):
+        target_dur = w_entry["dur"]
+        return [s for s in timeslots if s["dur"] == target_dur]
 
     proposals = []
     resolved = []
     unresolved = []
 
-    tries = 0
+    conflicts = find_teacher_conflicts()
 
-    # helper to check whether candidate slot is free for class & teacher
-    def is_slot_free(slot_key, class_id, teacher_id):
-        slot_map = global_schedule.get(slot_key, {"teacher": {}, "class": {}, "entries": []})
-        # teacher or class already used
-        if teacher_id and slot_map["teacher"].get(teacher_id):
-            return False
-        if slot_map["class"].get(class_id):
-            return False
-        return True
+    for (id_a, id_b) in conflicts:
+        # Re-vérifier : le conflit existe-t-il encore dans l'état courant ?
+        wa = working.get(id_a)
+        wb = working.get(id_b)
+        if not wa or not wb:
+            continue
+        if not _time_overlaps(wa["start_min"], wa["end_min"], wb["start_min"], wb["end_min"]):
+            continue  # déjà résolu par un déplacement précédent
 
-    # helper to find slot candidates for a given entry (we attempt slots with same duration)
-    def find_candidate_slots_for_entry(entry):
-        dur = (entry.ends_at.hour * 60 + entry.ends_at.minute) - (entry.starts_at.hour * 60 + entry.starts_at.minute)
-        candidates = []
-        # prefer same weekday different non-overlapping slots
-        for s in slots:
-            # skip identical original
-            if s["weekday"] == entry.weekday and s["db_obj"].start_time == entry.starts_at and s["db_obj"].end_time == entry.ends_at:
-                continue
-            # require slot duration >= entry duration (allow equal or longer)
-            if s["dur"] >= dur:
-                candidates.append(s["idx"])
-        # shuffle to diversify
-        random.shuffle(candidates)
-        return candidates
-
-    # map slot idx back to slot_key used in global_schedule
-    def slot_idx_to_key(idx):
-        s = next((x for x in slots if x["idx"] == idx), None)
-        if not s:
-            return None
-        return idx
-
-    # Build a helper to get slot_key for a given (weekday,start,end)
-    def make_slot_key_from_idx(idx):
-        s = next((x for x in slots if x["idx"] == idx), None)
-        if not s:
-            return None
-        return idx
-
-    # MAIN loop: iterate conflicts and attempt greedy relocate then swap
-    for conf in conflicts:
-        if tries >= max_tries:
-            break
-        tries += 1
-        a_id, b_id = conf["pair"]
-        a = entry_by_id.get(a_id)
-        b = entry_by_id.get(b_id)
-        # pick the one with less "penalty" to move (heuristic: move the one that has more candidate slots)
-        cand_a = find_candidate_slots_for_entry(a)
-        cand_b = find_candidate_slots_for_entry(b)
-        # try moving b first (later slot) then a
         moved = False
-        for move_entry, cand_slots in ((b, cand_b), (a, cand_a)):
-            if not cand_slots:
-                continue
-            for cand_idx in cand_slots:
-                # convert cand_idx to slot_key used in schedule
-                cand_slot = next((x for x in slots if x["idx"] == cand_idx), None)
-                if not cand_slot:
-                    continue
-                cand_key = cand_idx
-                # ensure slot doesn't conflict with other scheduled entries for the class or teacher
-                if is_slot_free(cand_key, move_entry.school_class_id, move_entry.teacher_id):
-                    # propose move: change starts_at/ends_at/weekday to candidate slot values
-                    proposal = {
-                        "entry_id": move_entry.id,
-                        "from": {"weekday": move_entry.weekday, "starts_at": str(move_entry.starts_at), "ends_at": str(move_entry.ends_at)},
-                        "to": {"weekday": cand_slot["weekday"], "starts_at": str(cand_slot["db_obj"].start_time), "ends_at": str(cand_slot["db_obj"].end_time)},
-                        "method": "relocate"
-                    }
-                    proposals.append(proposal)
-                    # update in-memory global_schedule (remove old, add new)
-                    old_key = slot_idx_map.get((move_entry.weekday, move_entry.starts_at, move_entry.ends_at), f"time::{move_entry.weekday}::{move_entry.starts_at}::{move_entry.ends_at}")
-                    # remove references
-                    g_old = global_schedule.get(old_key)
-                    if g_old:
-                        g_old["class"].pop(move_entry.school_class_id, None)
-                        if move_entry.teacher_id:
-                            teacher_list = g_old["teacher"].get(move_entry.teacher_id, [])
-                            if move_entry.id in teacher_list:
-                                teacher_list.remove(move_entry.id)
-                                if not teacher_list:
-                                    g_old["teacher"].pop(move_entry.teacher_id, None)
-                    # add to new slot map
-                    g_new = global_schedule.setdefault(cand_key, {"teacher": {}, "class": {}, "entries": []})
-                    g_new["class"].setdefault(move_entry.school_class_id, []).append(move_entry.id)
-                    if move_entry.teacher_id:
-                        g_new["teacher"].setdefault(move_entry.teacher_id, []).append(move_entry.id)
-                    g_new["entries"].append(move_entry.id)
-
-                    # apply to DB if persist (we will collect updates and apply after loop)
-                    move_entry._proposed_new = {"weekday": cand_slot["weekday"], "starts_at": cand_slot["db_obj"].start_time, "ends_at": cand_slot["db_obj"].end_time}
-                    moved = True
-                    break
+        # Essayer de déplacer wb en priorité (entrée "plus tard")
+        for candidate_entry, candidates in [(wb, candidate_slots_for(wb)), (wa, candidate_slots_for(wa))]:
             if moved:
-                resolved.append({"conflict": conf, "moved_entry": move_entry.id, "to_slot_idx": cand_idx})
+                break
+            for slot in candidates:
+                # Ne pas rester sur le même créneau
+                if (slot["weekday"] == candidate_entry["weekday"]
+                        and slot["start_min"] == candidate_entry["start_min"]):
+                    continue
+
+                all_pseudo_entries = working_as_entries()
+                free = _is_free(
+                    all_entries=all_pseudo_entries,
+                    exclude_id=candidate_entry["id"],
+                    teacher_id=candidate_entry["teacher_id"],
+                    class_id=candidate_entry["class_id"],
+                    weekday=slot["weekday"],
+                    start_min=slot["start_min"],
+                    end_min=slot["end_min"],
+                )
+                if not free:
+                    continue
+
+                # Appliquer le déplacement dans l'état mémoire
+                proposal = {
+                    "entry_id": candidate_entry["id"],
+                    "from": {
+                        "weekday": candidate_entry["weekday"],
+                        "starts_at": str(candidate_entry["starts_at"]),
+                        "ends_at": str(candidate_entry["ends_at"]),
+                    },
+                    "to": {
+                        "weekday": slot["weekday"],
+                        "starts_at": str(slot["db_obj"].start_time),
+                        "ends_at": str(slot["db_obj"].end_time),
+                    },
+                }
+                proposals.append(proposal)
+
+                working[candidate_entry["id"]].update({
+                    "weekday": slot["weekday"],
+                    "starts_at": slot["db_obj"].start_time,
+                    "ends_at": slot["db_obj"].end_time,
+                    "start_min": slot["start_min"],
+                    "end_min": slot["end_min"],
+                    "modified": True,
+                })
+
+                resolved.append({
+                    "conflict": {"entry_ids": [id_a, id_b]},
+                    "moved_entry_id": candidate_entry["id"],
+                    "to": proposal["to"],
+                })
+                moved = True
                 break
 
         if not moved:
-            # try swap: for each candidate slot of b, see if occupant there can move into a's original slot
-            swapped = False
-            # build original slot keys
-            a_slot_key = slot_idx_map.get((a.weekday, a.starts_at, a.ends_at), f"time::{a.weekday}::{a.starts_at}::{a.ends_at}")
-            b_slot_key = slot_idx_map.get((b.weekday, b.starts_at, b.ends_at), f"time::{b.weekday}::{b.starts_at}::{b.ends_at}")
-            for cand_idx in cand_b:
-                cand_key = cand_idx
-                slot_map = global_schedule.get(cand_key, {"entries": [], "teacher": {}, "class": {}})
-                # try each occupant in that cand slot and see if it can move to b's original slot
-                for occ_id in list(slot_map.get("entries", [])):
-                    if occ_id in (a.id, b.id):
-                        continue
-                    occ = entry_by_id.get(occ_id)
-                    # check if occ can occupy b's original slot (no class/teacher conflict)
-                    if is_slot_free(b_slot_key, occ.school_class_id, occ.teacher_id):
-                        # perform swap: move occ -> b_slot, and move b -> cand_idx (therefore freeing original b slot)
-                        # propose two updates
-                        proposals.append({
-                            "entry_id": occ.id,
-                            "from": {"weekday": occ.weekday, "starts_at": str(occ.starts_at), "ends_at": str(occ.ends_at)},
-                            "to": {"weekday": b.weekday, "starts_at": str(b.starts_at), "ends_at": str(b.ends_at)},
-                            "method": "swap-other"
-                        })
-                        proposals.append({
-                            "entry_id": b.id,
-                            "from": {"weekday": b.weekday, "starts_at": str(b.starts_at), "ends_at": str(b.ends_at)},
-                            "to": {"weekday": slot_map and next((x["db_obj"].day for x in slots if x["idx"] == cand_idx), b.weekday),
-                                   "starts_at": str(next((x["db_obj"].start_time for x in slots if x["idx"] == cand_idx), b.starts_at)),
-                                   "ends_at": str(next((x["db_obj"].end_time for x in slots if x["idx"] == cand_idx), b.ends_at))},
-                            "method": "swap-with-occ"
-                        })
-                        # update in-memory schedule accordingly
-                        # remove occ from cand_key
-                        slot_map["entries"].remove(occ.id)
-                        slot_map["class"].get(occ.school_class_id, []).remove(occ.id)
-                        slot_map["teacher"].get(occ.teacher_id, []).remove(occ.id)
-                        # add occ to b_slot_key
-                        g_bslot = global_schedule.setdefault(b_slot_key, {"entries": [], "class": {}, "teacher": {}})
-                        g_bslot["entries"].append(occ.id)
-                        g_bslot["class"].setdefault(occ.school_class_id, []).append(occ.id)
-                        if occ.teacher_id:
-                            g_bslot["teacher"].setdefault(occ.teacher_id, []).append(occ.id)
-                        # add b to cand_key
-                        slot_map["entries"].append(b.id)
-                        slot_map["class"].setdefault(b.school_class_id, []).append(b.id)
-                        if b.teacher_id:
-                            slot_map["teacher"].setdefault(b.teacher_id, []).append(b.id)
+            unresolved.append({
+                "entry_ids": [id_a, id_b],
+                "reason": "Aucun slot de même durée disponible pour ce prof et cette classe.",
+            })
 
-                        # mark proposed updates
-                        occ._proposed_new = {"weekday": b.weekday, "starts_at": b.starts_at, "ends_at": b.ends_at}
-                        b._proposed_new = {"weekday": next((x["weekday"] for x in slots if x["idx"] == cand_idx), b.weekday),
-                                           "starts_at": next((x["db_obj"].start_time for x in slots if x["idx"] == cand_idx), b.starts_at),
-                                           "ends_at": next((x["db_obj"].end_time for x in slots if x["idx"] == cand_idx), b.ends_at)}
-                        swapped = True
-                        break
-                if swapped:
-                    resolved.append({"conflict": conf, "swap_with": occ.id})
-                    break
+    # Après résolution greedy, re-vérifier qu'on n'a pas créé de nouveaux conflits
+    remaining_conflicts = find_teacher_conflicts()
+    if remaining_conflicts:
+        for (id_a, id_b) in remaining_conflicts:
+            unresolved.append({
+                "entry_ids": [id_a, id_b],
+                "reason": "Conflit résiduel détecté après résolution greedy.",
+            })
 
-            if not swapped:
-                unresolved.append(conf)
-
-    # Apply proposals to DB if requested
-    applied = []
+    applied_count = 0
     errors = []
-    if persist and not dry_run:
+
+    if not dry_run:
+        modified_entries = [w for w in working.values() if w["modified"]]
         try:
             with transaction.atomic():
-                for e in entry_by_id.values():
-                    if hasattr(e, "_proposed_new"):
-                        new = e._proposed_new
-                        # update fields
-                        e.weekday = new["weekday"]
-                        e.starts_at = new["starts_at"]
-                        e.ends_at = new["ends_at"]
-                        e.save()
-                        applied.append(e.id)
+                for w in modified_entries:
+                    entry = w["db_ref"]
+                    entry.weekday = w["weekday"]
+                    entry.starts_at = w["starts_at"]
+                    entry.ends_at = w["ends_at"]
+                    entry.save(update_fields=["weekday", "starts_at", "ends_at"])
+                    applied_count += 1
         except Exception as exc:
             errors.append(str(exc))
+            applied_count = 0
+            logger.exception("attempt_resolve_conflicts: transaction failed: %s", exc)
 
-    # build final report
-    report = {
-        "initial_conflicts_count": len(conflicts),
-        "resolved_count": len(resolved),
-        "unresolved_count": len(unresolved),
+    return {
         "resolved": resolved,
         "unresolved": unresolved,
         "proposals": proposals,
-        "applied": applied,
+        "applied_count": applied_count,
+        "dry_run": dry_run,
         "errors": errors,
     }
-    return report
 
 
-# ---------- Wrapper ----------
-def detect_and_resolve(dry_run: bool = True, persist: bool = False, max_tries: int = 200) -> Dict:
+# ─────────────────────────────────────────────────────────────────────────────
+#  Wrapper principal
+# ─────────────────────────────────────────────────────────────────────────────
+
+def detect_and_resolve(dry_run: bool = True, persist: bool = False) -> Dict:
     """
-    Pipeline : détecte puis tente de résoudre.
-    - dry_run: si True, ne touche pas la DB. persist=False signifie aussi dry-run.
-    - persist: si True et dry_run=False, applique les changements.
-    """
-    result_detect = detect_teacher_conflicts()
-    if result_detect["meta"]["num_teacher_conflicts"] == 0:
-        return {"detected": result_detect, "resolve": {"skipped": True, "reason": "no conflicts"}}
+    Pipeline complet : détecte puis tente de résoudre les conflits durs.
+    Les violations C2/C3 sont détectées et signalées mais NON résolues
+    automatiquement — elles sont laissées à l'appréciation de l'admin
+    via le batch apply.
 
-    resolve_report = attempt_resolve_conflicts(dry_run=dry_run, persist=persist, max_tries=max_tries)
-    # recompute detection after attempted resolution (if not dry_run and persist=True it reflects DB)
-    detected_after = detect_teacher_conflicts()
-    return {"detected_before": result_detect, "resolve_report": resolve_report, "detected_after": detected_after}
+    Paramètres :
+      dry_run=True, persist=False  → simulation pure, rien en DB
+      dry_run=False, persist=True  → résolution + persistance
+    """
+    before = detect_teacher_conflicts()
+
+    if (before["meta"]["num_teacher_conflicts"] == 0
+            and before["meta"]["num_class_conflicts"] == 0):
+        return {
+            "detected_before": before,
+            "resolve_report": {"skipped": True, "reason": "Aucun conflit dur détecté."},
+            "detected_after": before,
+        }
+
+    resolve_report = attempt_resolve_conflicts(dry_run=dry_run or not persist)
+
+    after = detect_teacher_conflicts()
+
+    return {
+        "detected_before": before,
+        "resolve_report": resolve_report,
+        "detected_after": after,
+        "summary": {
+            "hard_conflicts_before": (
+                before["meta"]["num_teacher_conflicts"]
+                + before["meta"]["num_class_conflicts"]
+            ),
+            "hard_conflicts_after": (
+                after["meta"]["num_teacher_conflicts"]
+                + after["meta"]["num_class_conflicts"]
+            ),
+            "c2_violations": after["meta"]["num_c2_violations"],
+            "c3_violations": after["meta"]["num_c3_violations"],
+            "admin_action_needed": (
+                after["meta"]["num_c2_violations"] > 0
+                or after["meta"]["num_c3_violations"] > 0
+                or after["meta"]["num_teacher_conflicts"] > 0
+            ),
+        },
+    }

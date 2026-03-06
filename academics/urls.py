@@ -16,6 +16,7 @@ from .views import (
     TimetableViewSet,
     SubjectCommentViewSet,
     TimeSlotViewSet,
+    CopyClassConfigView,
 
     # Attendance
     AttendanceSessionViewSet,
@@ -77,4 +78,6 @@ urlpatterns = [
     # Presences - vues non couvertes par le router
     path('attendance/daily-sheet/', DailyAttendanceSheetView.as_view(),     name='attendance-daily-sheet'),
     path('attendance/history/',     StudentAttendanceHistoryView.as_view(), name='attendance-history'),
+    path('class-subjects/copy-config/', CopyClassConfigView.as_view(),      name='copy-class-config'),
+    path('copy-class-config/', CopyClassConfigView.as_view(),               name='copy-class-config'),
 ]
