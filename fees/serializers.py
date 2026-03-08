@@ -65,22 +65,45 @@ class StudentMiniSerializer(serializers.Serializer):
 
 
 class FeeSerializer(serializers.ModelSerializer):
+    # Lecture : objet complet
     student = StudentMiniSerializer(read_only=True)
+
+    # ✅ FIX : champ write-only pour la création (POST /fees/)
+    # Le frontend doit envoyer { student_id: <id> }
+    student_id = serializers.PrimaryKeyRelatedField(
+        queryset=Student.objects.all(),
+        source="student",
+        write_only=True,
+        required=False,  # False pour que le PATCH partiel ne l'exige pas
+    )
+
     fee_type_name = serializers.CharField(source="fee_type.name", read_only=True)
     due_date = serializers.DateField(required=False, allow_null=True)
 
-    # nouveaux champs exposés dans l'API
+    # Champs calculés (annotés dans le viewset)
     total_paid = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
     total_remaining = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
 
     class Meta:
         model = Fee
         fields = [
-            "id", "fee_type", "fee_type_name", "student",
+            "id", "fee_type", "fee_type_name",
+            "student", "student_id",          # les deux exposés
             "amount", "due_date", "paid", "payment_date", "created_at",
-            "total_paid", "total_remaining"
+            "total_paid", "total_remaining",
         ]
-        read_only_fields = ["id", "fee_type_name", "student", "paid", "payment_date", "created_at", "total_paid", "total_remaining"]
+        read_only_fields = [
+            "id", "fee_type_name", "student",
+            "paid", "payment_date", "created_at",
+            "total_paid", "total_remaining",
+        ]
+
+    def validate(self, attrs):
+        # À la création, student_id est obligatoire
+        if not self.instance and not attrs.get("student"):
+            raise serializers.ValidationError({"student_id": "Ce champ est requis à la création."})
+        return attrs
+
 
 class PaymentSerializer(serializers.ModelSerializer):
     fee_detail = FeeSerializer(source="fee", read_only=True)
@@ -118,7 +141,6 @@ class PaymentSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         payment = super().create(validated_data)
-        # on garde la logique actuelle : tenter validate automatique
         try:
             payment.validate(user=None)
         except Exception:

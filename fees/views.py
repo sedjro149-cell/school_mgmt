@@ -26,12 +26,6 @@ class FeeTypeViewSet(viewsets.ModelViewSet):
     ordering_fields = ["name", "created_at"]
 
     def update(self, request, *args, **kwargs):
-        """
-        Override update to optionally propagate due_date to existing Fees.
-        Query params:
-            ?propagate=true -> propagate the due_date to related Fee records
-            ?override=true -> when propagating, overwrite existing fee.due_date (otherwise only null ones)
-        """
         propagate = request.query_params.get("propagate", "false").lower() in ("1", "true", "yes")
         override = request.query_params.get("override", "false").lower() in ("1", "true", "yes")
         partial = kwargs.pop('partial', False)
@@ -40,7 +34,6 @@ class FeeTypeViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
 
-        # propagation si demandé et due_date fournie
         if propagate:
             new_due = serializer.validated_data.get("due_date", None)
             if new_due is not None:
@@ -62,6 +55,7 @@ class FeeTypeAmountViewSet(viewsets.ModelViewSet):
     pagination_class = None
 
 
+from decimal import Decimal
 from django.db import models
 from django.db.models import Sum, F, Value, Q, DecimalField, ExpressionWrapper
 from django.db.models.functions import Coalesce
@@ -130,8 +124,18 @@ class FeeViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         data = request.data.copy()
 
+        # Supporte fee_type_id (legacy) ou fee_type
         fee_type = data.get("fee_type_id") or data.get("fee_type")
-        student_id = data.get("student")
+        # Supporte student_id (nouveau) ou student (legacy)
+        student_id = data.get("student_id") or data.get("student")
+
+        # Normaliser vers student_id pour le serializer
+        if student_id:
+            data["student_id"] = student_id
+
+        # Normaliser vers fee_type pour le serializer
+        if fee_type:
+            data["fee_type"] = fee_type
 
         if fee_type and student_id and not data.get("amount"):
             try:
@@ -156,6 +160,35 @@ class FeeViewSet(viewsets.ModelViewSet):
         self.perform_create(serializer)
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def perform_update(self, serializer):
+        """
+        ✅ FIX : Après mise à jour du montant, recalculer le statut paid du Fee.
+        Exemple : fee.amount passe de 70 000 à 75 000 alors que 70 000 ont été payés
+        → fee.paid doit repasser à False.
+        """
+        instance = serializer.save()
+
+        # Recalculer le total des paiements validés
+        total_paid_agg = instance.payments.filter(validated=True).aggregate(
+            total=Sum('amount')
+        )['total']
+        total_paid = Decimal(str(total_paid_agg)) if total_paid_agg is not None else Decimal('0')
+
+        try:
+            fee_amount = Decimal(str(instance.amount))
+        except Exception:
+            fee_amount = Decimal('0')
+
+        new_paid_status = total_paid >= fee_amount
+        new_payment_date = instance.payment_date if new_paid_status else None
+
+        # Mettre à jour uniquement si l'état a changé
+        if instance.paid != new_paid_status or instance.payment_date != new_payment_date:
+            Fee.objects.filter(pk=instance.pk).update(
+                paid=new_paid_status,
+                payment_date=new_payment_date,
+            )
 
     @action(detail=True, methods=["patch"], permission_classes=[IsAdminUser])
     def validate_fee(self, request, pk=None):
@@ -221,7 +254,6 @@ class FeeViewSet(viewsets.ModelViewSet):
 
         created_count = 0
 
-        # Parents
         for parent in fee.student.parents.all():
             user_obj = getattr(parent, "user", None)
             if not user_obj:
@@ -274,7 +306,6 @@ class FeeViewSet(viewsets.ModelViewSet):
 
             created_count += 1
 
-        # Student
         student_user = getattr(fee.student, "user", None)
 
         if student_user:
@@ -356,28 +387,25 @@ class PaymentViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"], permission_classes=[IsAdminUser])
     def validate_payment(self, request, pk=None):
-            payment = get_object_or_404(Payment, pk=pk)
-            if payment.validated:
-                return Response({"detail": "Déjà validé."}, status=status.HTTP_400_BAD_REQUEST)
+        payment = get_object_or_404(Payment, pk=pk)
+        if payment.validated:
+            return Response({"detail": "Déjà validé."}, status=status.HTTP_400_BAD_REQUEST)
 
-            try:
-                payment.validate(user=request.user)
-                return Response({"detail": "Paiement validé.", "payment_id": payment.id}, status=status.HTTP_200_OK)
-            except PermissionDenied as e:
-                return Response({"detail": str(e)}, status=status.HTTP_403_FORBIDDEN)
-            except ValidationError as e:
-                # ValidationError peut contenir un dict / message
-                msg = e.message if hasattr(e, 'message') else str(e)
-                return Response({"detail": msg}, status=status.HTTP_400_BAD_REQUEST)
-            except Exception as e:
-                 # log complet pour debuggage
-                 import logging
-                 logger = logging.getLogger(__name__)
-                 logger.exception("Erreur lors de validate_payment for payment_id=%s user=%r", pk, request.user)
-                 return Response({"detail": "Erreur interne lors de la validation."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        try:
+            payment.validate(user=request.user)
+            return Response({"detail": "Paiement validé.", "payment_id": payment.id}, status=status.HTTP_200_OK)
+        except PermissionDenied as e:
+            return Response({"detail": str(e)}, status=status.HTTP_403_FORBIDDEN)
+        except ValidationError as e:
+            msg = e.message if hasattr(e, 'message') else str(e)
+            return Response({"detail": msg}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.exception("Erreur lors de validate_payment for payment_id=%s user=%r", pk, request.user)
+            return Response({"detail": "Erreur interne lors de la validation."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-# Statistic endpoints (unchanged)
 from .utils.statistics import (
     get_global_stats,
     get_stats_by_class,
