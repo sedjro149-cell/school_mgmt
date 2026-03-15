@@ -1,14 +1,16 @@
-from django.db import models
+from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.db import models
+from django.utils import timezone
 from decimal import Decimal
-from core.models import Student
-from core.models import Teacher, Student, User
+
+from core.models import Student, Teacher, User
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+#  NIVEAUX ET CLASSES
+# ─────────────────────────────────────────────────────────────────────────────
 
-# =======================
-# Niveaux et classes
-# =======================
 class Level(models.Model):
     name = models.CharField(max_length=50, unique=True)
 
@@ -20,7 +22,7 @@ class Level(models.Model):
 
 
 class SchoolClass(models.Model):
-    name = models.CharField(max_length=50)
+    name  = models.CharField(max_length=50)
     level = models.ForeignKey(Level, on_delete=models.CASCADE, related_name="classes")
 
     class Meta:
@@ -31,12 +33,10 @@ class SchoolClass(models.Model):
         return f"{self.name} ({self.level})"
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+#  MATIÈRES
+# ─────────────────────────────────────────────────────────────────────────────
 
-
-
-# =======================
-# Matières
-# =======================
 class Subject(models.Model):
     name = models.CharField(max_length=100, unique=True)
 
@@ -48,17 +48,11 @@ class Subject(models.Model):
 
 
 class ClassSubject(models.Model):
-    school_class = models.ForeignKey(
-        SchoolClass, on_delete=models.CASCADE, related_name="class_subjects"
-    )
-    subject = models.ForeignKey(
-        Subject, on_delete=models.CASCADE, related_name="class_subjects"
-    )
-    coefficient = models.PositiveIntegerField(default=1)
-    is_optional = models.BooleanField(default=False)
-    
-    # Nouveau champ : nombre d'heures par semaine pour cette matière dans cette classe
-    hours_per_week = models.PositiveIntegerField(default=0)  
+    school_class   = models.ForeignKey(SchoolClass, on_delete=models.CASCADE, related_name="class_subjects")
+    subject        = models.ForeignKey(Subject,     on_delete=models.CASCADE, related_name="class_subjects")
+    coefficient    = models.PositiveIntegerField(default=1)
+    is_optional    = models.BooleanField(default=False)
+    hours_per_week = models.PositiveIntegerField(default=0)
 
     class Meta:
         unique_together = ("school_class", "subject")
@@ -68,57 +62,197 @@ class ClassSubject(models.Model):
         opt = " (facultatif)" if self.is_optional else ""
         return f"{self.school_class} - {self.subject} (coef {self.coefficient}, {self.hours_per_week}h/semaine){opt}"
 
-# =======================
-# Emploi du temps
-# =======================
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  EMPLOI DU TEMPS
+# ─────────────────────────────────────────────────────────────────────────────
+
 class Weekday(models.IntegerChoices):
-    MONDAY = 1, "Monday"
-    TUESDAY = 2, "Tuesday"
+    MONDAY    = 1, "Monday"
+    TUESDAY   = 2, "Tuesday"
     WEDNESDAY = 3, "Wednesday"
-    THURSDAY = 4, "Thursday"
-    FRIDAY = 5, "Friday"
-    SATURDAY = 6, "Saturday"
-    SUNDAY = 7, "Sunday"
+    THURSDAY  = 4, "Thursday"
+    FRIDAY    = 5, "Friday"
+    SATURDAY  = 6, "Saturday"
+    SUNDAY    = 7, "Sunday"
 
 
 class ClassScheduleEntry(models.Model):
-    school_class = models.ForeignKey(
-        SchoolClass, on_delete=models.CASCADE, related_name="timetable"
+    school_class = models.ForeignKey(SchoolClass, on_delete=models.CASCADE, related_name="timetable")
+    subject      = models.ForeignKey(Subject,     on_delete=models.PROTECT,  related_name="timetable_entries")
+    teacher      = models.ForeignKey(
+        "core.Teacher", on_delete=models.PROTECT,
+        related_name="timetable_entries", null=True, blank=True,
     )
-    subject = models.ForeignKey(
-        Subject, on_delete=models.PROTECT, related_name="timetable_entries"
-    )
-    teacher = models.ForeignKey(
-        "core.Teacher",
-        on_delete=models.PROTECT,
-        related_name="timetable_entries",
-        null=True,
-        blank=True
-    )
-    weekday = models.PositiveSmallIntegerField()
+    weekday   = models.PositiveSmallIntegerField()
     starts_at = models.TimeField()
-    ends_at = models.TimeField()
+    ends_at   = models.TimeField()
 
 
-# =======================
-# Notes et bulletins
-# =======================
+class TimeSlot(models.Model):
+    day        = models.IntegerField(choices=Weekday.choices)
+    start_time = models.TimeField()
+    end_time   = models.TimeField()
+
+    class Meta:
+        ordering = ["day", "start_time"]
+
+    def __str__(self):
+        return f"{Weekday(self.day).label} {self.start_time.strftime('%H:%M')} - {self.end_time.strftime('%H:%M')}"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  CONFIGURATION ANNÉE SCOLAIRE  (singleton)
+# ─────────────────────────────────────────────────────────────────────────────
+
+class SchoolYearConfig(models.Model):
+    """
+    Configuration globale de l'année scolaire. Un seul enregistrement (pk=1).
+    nb_terms : 2 ou 3 — contrôle quels trimestres sont autorisés.
+    current_year : affichage uniquement, ex. "2024-2025".
+    """
+    NB_TERMS_CHOICES = [(2, "2 trimestres"), (3, "3 trimestres")]
+
+    nb_terms     = models.PositiveSmallIntegerField(choices=NB_TERMS_CHOICES, default=3)
+    current_year = models.CharField(max_length=9, default="2024-2025")
+
+    class Meta:
+        verbose_name = "Configuration de l'année scolaire"
+
+    def __str__(self):
+        return f"Config {self.current_year} — {self.nb_terms} trimestres"
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  CONFIGURATION PÉDAGOGIQUE PAR MATIÈRE × CLASSE × TRIMESTRE
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TermSubjectConfig(models.Model):
+    """
+    Définit combien d'interrogations et de devoirs sont prévus pour une matière
+    dans une classe et un trimestre donné.
+
+    Ces valeurs servent de DIVISEUR FIXE lors du calcul des moyennes au lock,
+    ET contraignent la saisie : les champs au-delà de la config sont annulés.
+
+    Valeurs par défaut si absent au lock : nb_interros=3, nb_devoirs=2.
+    """
+    school_class = models.ForeignKey(SchoolClass, on_delete=models.CASCADE, related_name="term_subject_configs")
+    subject      = models.ForeignKey(Subject,     on_delete=models.CASCADE, related_name="term_subject_configs")
+    term         = models.CharField(max_length=10)
+    nb_interros  = models.PositiveSmallIntegerField(default=3)
+    nb_devoirs   = models.PositiveSmallIntegerField(default=2)
+
+    class Meta:
+        unique_together = ("school_class", "subject", "term")
+        ordering = ["school_class__name", "subject__name", "term"]
+
+    def __str__(self):
+        return f"{self.school_class} — {self.subject} — {self.term} ({self.nb_interros}I / {self.nb_devoirs}D)"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  STATUT DE TRIMESTRE PAR CLASSE
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TermStatus(models.Model):
+    """
+    Cycle de vie d'un trimestre pour une classe.
+
+    DRAFT     → saisie ouverte, moyennes non calculées
+    LOCKED    → saisie bloquée, moyennes calculées et stockées dans Grade
+    PUBLISHED → moyennes visibles par élèves et parents
+
+    Les transitions se font via lock() / unlock() / publish().
+    """
+
+    class Status(models.TextChoices):
+        DRAFT     = "draft",     "Brouillon (saisie ouverte)"
+        LOCKED    = "locked",    "Verrouillé (moyennes calculées)"
+        PUBLISHED = "published", "Publié (visible aux élèves)"
+
+    school_class = models.ForeignKey(SchoolClass, on_delete=models.CASCADE, related_name="term_statuses")
+    term         = models.CharField(max_length=10)
+    status       = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT, db_index=True)
+    locked_by    = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                     null=True, blank=True, related_name="locked_terms")
+    locked_at    = models.DateTimeField(null=True, blank=True)
+    unlocked_at  = models.DateTimeField(null=True, blank=True)
+    published_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ("school_class", "term")
+        ordering = ["school_class__name", "term"]
+
+    def __str__(self):
+        return f"{self.school_class} — {self.term} [{self.get_status_display()}]"
+
+    @property
+    def is_editable(self):
+        return self.status == self.Status.DRAFT
+
+    def lock(self, user):
+        from django.db import transaction
+        from academics.services.averages import compute_averages_for_term
+        if self.status != self.Status.DRAFT:
+            raise ValidationError(f"Ce trimestre n'est pas en brouillon (statut : {self.get_status_display()}).")
+        with transaction.atomic():
+            self.status    = self.Status.LOCKED
+            self.locked_at = timezone.now()
+            self.locked_by = user
+            self.save(update_fields=["status", "locked_at", "locked_by"])
+            compute_averages_for_term(self)
+
+    def unlock(self, user):
+        from django.db import transaction
+        from academics.services.averages import reset_averages_for_term
+        if self.status == self.Status.DRAFT:
+            raise ValidationError("Ce trimestre est déjà en brouillon.")
+        with transaction.atomic():
+            self.status      = self.Status.DRAFT
+            self.unlocked_at = timezone.now()
+            self.locked_at   = None
+            self.locked_by   = None
+            self.save(update_fields=["status", "unlocked_at", "locked_at", "locked_by"])
+            reset_averages_for_term(self)
+
+    def publish(self, user):
+        if self.status != self.Status.LOCKED:
+            raise ValidationError("Verrouillez d'abord le trimestre avant de le publier.")
+        self.status       = self.Status.PUBLISHED
+        self.published_at = timezone.now()
+        self.save(update_fields=["status", "published_at"])
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  NOTES
+# ─────────────────────────────────────────────────────────────────────────────
+
 class Grade(models.Model):
     TERM_CHOICES = [("T1", "1er trimestre"), ("T2", "2e trimestre"), ("T3", "3e trimestre")]
 
     student = models.ForeignKey("core.Student", on_delete=models.CASCADE, related_name="grades")
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name="grades")
-    term = models.CharField(max_length=10, choices=TERM_CHOICES)
+    term    = models.CharField(max_length=10, choices=TERM_CHOICES)
 
     interrogation1 = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     interrogation2 = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     interrogation3 = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
-    devoir1 = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
-    devoir2 = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    devoir1        = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    devoir2        = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
 
     average_interro = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     average_subject = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
-    average_coeff = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
+    average_coeff   = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -132,9 +266,11 @@ class Grade(models.Model):
     def clean(self):
         school_class = getattr(self.student, "school_class", None)
         if school_class is None:
-            raise ValidationError("L'élève doit être rattaché à une classe avant d'enregistrer une note.")
+            raise ValidationError("L'élève doit être rattaché à une classe.")
         if not ClassSubject.objects.filter(school_class=school_class, subject=self.subject).exists():
-            raise ValidationError(f"La matière « {self.subject} » n'est pas définie pour la classe « {school_class} ».")
+            raise ValidationError(
+                f"La matière « {self.subject} » n'est pas définie pour la classe « {school_class} »."
+            )
 
     @property
     def coefficient(self):
@@ -143,20 +279,16 @@ class Grade(models.Model):
         ).first()
         return cs.coefficient if cs else 1
 
-    def calculate_averages(self):
-        interros = [n for n in [self.interrogation1, self.interrogation2, self.interrogation3] if n is not None]
-        self.average_interro = round(sum(interros) / len(interros), 2) if interros else None
-        devoirs = [n for n in [self.devoir1, self.devoir2] if n is not None]
-        all_grades = devoirs + ([self.average_interro] if self.average_interro else [])
-        self.average_subject = round(sum(all_grades) / len(all_grades), 2) if all_grades else None
-        self.average_coeff = round(self.average_subject * self.coefficient, 2) if self.average_subject else None
-
     def save(self, *args, **kwargs):
-        self.calculate_averages()
+        # Les moyennes sont calculées UNIQUEMENT au verrouillage via compute_averages_for_term().
+        # Les champs interrogation/devoir excédentaires par rapport à TermSubjectConfig
+        # sont ignorés au calcul (pas nullifiés à la saisie).
         super().save(*args, **kwargs)
 
-# DraftGrade: brouillons de notes saisis par les profs avant soumission définitive
-from django.db import models
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  BROUILLONS DE NOTES (enseignants)
+# ─────────────────────────────────────────────────────────────────────────────
 
 class DraftGrade(models.Model):
     TERM_CHOICES = [("T1", "1er trimestre"), ("T2", "2e trimestre"), ("T3", "3e trimestre")]
@@ -164,13 +296,13 @@ class DraftGrade(models.Model):
     teacher = models.ForeignKey("core.Teacher", on_delete=models.CASCADE, related_name="draft_grades")
     student = models.ForeignKey("core.Student", on_delete=models.CASCADE, related_name="draft_grades")
     subject = models.ForeignKey("academics.Subject", on_delete=models.CASCADE, related_name="draft_grades")
-    term = models.CharField(max_length=10, choices=TERM_CHOICES)
+    term    = models.CharField(max_length=10, choices=TERM_CHOICES)
 
     interrogation1 = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     interrogation2 = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     interrogation3 = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
-    devoir1 = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
-    devoir2 = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    devoir1        = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    devoir2        = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
 
     updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -182,18 +314,20 @@ class DraftGrade(models.Model):
     def __str__(self):
         return f"Draft {self.teacher} - {self.student} - {self.subject} ({self.term})"
 
-# =======================
-# Commentaires des professeurs sur les matières
-# =======================
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  COMMENTAIRES DES PROFESSEURS
+# ─────────────────────────────────────────────────────────────────────────────
+
 class SubjectComment(models.Model):
     TERM_CHOICES = [("T1", "1er trimestre"), ("T2", "2e trimestre"), ("T3", "3e trimestre")]
 
     student = models.ForeignKey("core.Student", on_delete=models.CASCADE, related_name="subject_comments")
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name="subject_comments")
     teacher = models.ForeignKey("core.Teacher", on_delete=models.CASCADE, related_name="subject_comments")
-    term = models.CharField(max_length=10, choices=TERM_CHOICES)
-
+    term    = models.CharField(max_length=10, choices=TERM_CHOICES)
     comment = models.TextField(blank=True, null=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -203,90 +337,37 @@ class SubjectComment(models.Model):
     def __str__(self):
         return f"{self.student} - {self.subject} ({self.term})"
 
-from django.db import models
 
-class TimeSlot(models.Model):
-    # Lier le créneau à un jour via Weekday
-    day = models.IntegerField(choices=Weekday.choices)
-    start_time = models.TimeField()
-    end_time = models.TimeField()
-
-    class Meta:
-        ordering = ["day", "start_time"]
-
-    def __str__(self):
-        day_display = Weekday(self.day).label  # pour afficher "Monday", "Tuesday", etc.
-        return f"{day_display} {self.start_time.strftime('%H:%M')} - {self.end_time.strftime('%H:%M')}"
+# ─────────────────────────────────────────────────────────────────────────────
+#  ANNONCES
+# ─────────────────────────────────────────────────────────────────────────────
 
 class Announcement(models.Model):
-
-    title = models.CharField(max_length=255, verbose_name="Titre")
-
-    content = models.TextField(verbose_name="Contenu")
-
-    image = models.ImageField(upload_to="announcements/", null=True, blank=True, verbose_name="Image")
-
-    
-
-    # Pour savoir qui a posté (généralement un admin)
-
+    title      = models.CharField(max_length=255)
+    content    = models.TextField()
+    image      = models.ImageField(upload_to="announcements/", null=True, blank=True)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="announcements")
-
-    
-
     created_at = models.DateTimeField(auto_now_add=True)
-
     updated_at = models.DateTimeField(auto_now=True)
 
-
-
     class Meta:
-
-        ordering = ["-created_at"] # Les plus récentes en premier
-
+        ordering = ["-created_at"]
         verbose_name = "Annonce"
-
         verbose_name_plural = "Annonces"
 
-
-
     def __str__(self):
-
         return f"{self.title} ({self.created_at.strftime('%d/%m/%Y')})"
 
-# =============================================================================
-#  À AJOUTER dans academics/models.py
-#
-#  MIGRATION :
-#  1. Coller AttendanceSession AVANT la classe StudentAttendance existante
-#  2. Remplacer la classe StudentAttendance existante par la version ci-dessous
-#  3. python manage.py makemigrations academics
-#  4. python manage.py migrate
-# =============================================================================
 
-from django.conf import settings
-from django.db import models
-from django.utils import timezone
-
-
-# -----------------------------------------------------------------------------
-#  NOUVEAU MODÈLE — à insérer avant StudentAttendance
-# -----------------------------------------------------------------------------
+# ─────────────────────────────────────────────────────────────────────────────
+#  PRÉSENCES
+# ─────────────────────────────────────────────────────────────────────────────
 
 class AttendanceSession(models.Model):
     """
-    Représente l'acte d'ouvrir la feuille d'appel pour un créneau à une date.
-
-    Cycle de vie :
-        OPEN      → feuille ouverte, absences modifiables, aucune notification
-        SUBMITTED → appel validé, données figées, notifications envoyées
-        CANCELLED → cours annulé, aucune présence comptabilisée
-
-    Règle de lecture :
-        aucune session            → appel non effectué
-        session OPEN              → appel en cours (données provisoires)
-        session SUBMITTED         → appel fait (présences/absences définitives)
-        session CANCELLED         → cours n'a pas eu lieu
+    Feuille d'appel pour un créneau à une date.
+    OPEN → SUBMITTED → notifications envoyées.
+    CANCELLED → cours annulé.
     """
 
     class Status(models.TextChoices):
@@ -295,30 +376,18 @@ class AttendanceSession(models.Model):
         CANCELLED = "CANCELLED", "Annulé"
 
     schedule_entry = models.ForeignKey(
-        "ClassScheduleEntry",
-        on_delete=models.CASCADE,
-        related_name="attendance_sessions",
+        "ClassScheduleEntry", on_delete=models.CASCADE, related_name="attendance_sessions"
     )
-    date = models.DateField()
-
-    status = models.CharField(
-        max_length=12,
-        choices=Status.choices,
-        default=Status.OPEN,
-        db_index=True,
-    )
+    date     = models.DateField()
+    status   = models.CharField(max_length=12, choices=Status.choices, default=Status.OPEN, db_index=True)
     opened_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
         related_name="attendance_sessions_opened",
     )
     opened_at    = models.DateTimeField(auto_now_add=True)
     submitted_at = models.DateTimeField(null=True, blank=True)
     submitted_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True, blank=True,
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
         related_name="attendance_sessions_submitted",
     )
     cancelled_at = models.DateTimeField(null=True, blank=True)
@@ -357,7 +426,6 @@ class AttendanceSession(models.Model):
         return True
 
     def reopen(self, user):
-        """Admin seulement — correction post-soumission."""
         if self.status != self.Status.SUBMITTED:
             return False
         self.status       = self.Status.OPEN
@@ -367,54 +435,24 @@ class AttendanceSession(models.Model):
         return True
 
 
-# -----------------------------------------------------------------------------
-#  REMPLACEMENT de StudentAttendance
-#  (remplace entièrement la version existante dans models.py)
-# -----------------------------------------------------------------------------
-
 class StudentAttendance(models.Model):
     """
-    Enregistrement d'une non-présence dans une AttendanceSession.
-
-    Règle de lecture :
-        session SUBMITTED + aucune entrée pour cet élève  → PRÉSENT confirmé
-        session SUBMITTED + entrée présente               → ABSENT / LATE / EXCUSED
-        session OPEN                                      → données provisoires
-        aucune session                                    → appel non effectué
-
-    Note : "PRESENT" n'existe pas comme valeur stockée.
-    L'absence de ligne dans une session soumise signifie présent.
+    Non-présence dans une session. L'absence de ligne = présent (session SUBMITTED).
     """
-
     STATUS_CHOICES = [
         ("ABSENT",  "Absent"),
         ("LATE",    "En retard"),
         ("EXCUSED", "Excusé"),
     ]
 
-    session = models.ForeignKey(
-        AttendanceSession,
-        on_delete=models.CASCADE,
-        related_name="attendances",
-        null=True,      # ← temporaire
-        blank=True,
-    )
-    student = models.ForeignKey(
-        "core.Student",
-        on_delete=models.CASCADE,
-        related_name="attendances",
-    )
-    # Dénormalisé pour requêtes historiques rapides (évite JOIN sur session)
-    date = models.DateField(db_index=True)
-
-    status    = models.CharField(max_length=10, choices=STATUS_CHOICES, default="ABSENT")
-    reason    = models.CharField(max_length=255, blank=True, null=True)
-    marked_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name="attendances_marked",
-    )
+    session    = models.ForeignKey(AttendanceSession, on_delete=models.CASCADE,
+                                   related_name="attendances", null=True, blank=True)
+    student    = models.ForeignKey("core.Student", on_delete=models.CASCADE, related_name="attendances")
+    date       = models.DateField(db_index=True)
+    status     = models.CharField(max_length=10, choices=STATUS_CHOICES, default="ABSENT")
+    reason     = models.CharField(max_length=255, blank=True, null=True)
+    marked_by  = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                   null=True, related_name="attendances_marked")
     notified_at = models.DateTimeField(null=True, blank=True)
     created_at  = models.DateTimeField(auto_now_add=True)
     updated_at  = models.DateTimeField(auto_now=True)
